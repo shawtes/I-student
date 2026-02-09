@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const auth = require('../middleware/auth');
 const File = require('../models/File');
+const { uploadLimiter } = require('../middleware/rateLimiter');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -45,8 +46,8 @@ const upload = multer({
   }
 });
 
-// Upload file
-router.post('/upload', auth, upload.single('file'), async (req, res) => {
+// Upload file - with rate limiting
+router.post('/upload', auth, uploadLimiter, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });

@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const tutoringService = require('../services/tutoringService');
+const { aiLimiter } = require('../middleware/rateLimiter');
 
-// Ask a question (RAG-based tutoring)
-router.post('/ask', auth, async (req, res) => {
+// Ask a question (RAG-based tutoring) - with AI rate limiting
+router.post('/ask', auth, aiLimiter, async (req, res) => {
   try {
     const { question, fileIds } = req.body;
 

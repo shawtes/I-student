@@ -3,9 +3,10 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const File = require('../models/File');
 const transcriptionService = require('../services/transcriptionService');
+const { aiLimiter } = require('../middleware/rateLimiter');
 
-// Transcribe audio file
-router.post('/:fileId', auth, async (req, res) => {
+// Transcribe audio file - with AI rate limiting
+router.post('/:fileId', auth, aiLimiter, async (req, res) => {
   try {
     const file = await File.findById(req.params.fileId);
 

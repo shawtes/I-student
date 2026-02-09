@@ -3,9 +3,10 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const StudyContent = require('../models/StudyContent');
 const studyService = require('../services/studyService');
+const { aiLimiter } = require('../middleware/rateLimiter');
 
-// Generate study content (quiz, flashcards, guide)
-router.post('/generate', auth, async (req, res) => {
+// Generate study content (quiz, flashcards, guide) - with AI rate limiting
+router.post('/generate', auth, aiLimiter, async (req, res) => {
   try {
     const { type, title, fileIds, topic } = req.body;
 
