@@ -25,14 +25,23 @@ const upload = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /pdf|doc|docx|txt|mp3|mp4|wav|m4a/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    const allowedMimeTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'audio/mpeg',
+      'audio/mp3',
+      'audio/wav',
+      'audio/mp4',
+      'audio/x-m4a',
+      'video/mp4'
+    ];
     
-    if (extname && mimetype) {
+    if (allowedMimeTypes.includes(file.mimetype)) {
       return cb(null, true);
     }
-    cb(new Error('Invalid file type'));
+    cb(new Error('Invalid file type. Only PDF, DOC, DOCX, TXT, and audio/video files are allowed.'));
   }
 });
 

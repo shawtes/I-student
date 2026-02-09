@@ -34,14 +34,20 @@ router.post('/:fileId', auth, async (req, res) => {
     // Transcribe (async)
     transcriptionService.transcribe(file._id, file.localPath)
       .then(async (transcriptionText) => {
-        file.transcription.text = transcriptionText;
-        file.transcription.status = 'completed';
-        await file.save();
+        const updatedFile = await File.findById(file._id);
+        if (updatedFile) {
+          updatedFile.transcription.text = transcriptionText;
+          updatedFile.transcription.status = 'completed';
+          await updatedFile.save();
+        }
       })
       .catch(async (error) => {
         console.error('Transcription error:', error);
-        file.transcription.status = 'failed';
-        await file.save();
+        const updatedFile = await File.findById(file._id);
+        if (updatedFile) {
+          updatedFile.transcription.status = 'failed';
+          await updatedFile.save();
+        }
       });
 
     res.json({ message: 'Transcription started', fileId: file._id });
