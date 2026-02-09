@@ -65,11 +65,11 @@ High-level task assignment and schedule (to be refined as the sprint progresses)
 
 | Assignee | Email | Task | Duration (hours) | Dependency | Due Date |
 |----------|-------|------|-------------------|------------|----------|
-| Khoa Nguyen | knguyen221@student.gsu.edu | | | | 01/30/2026 |
-| Alvin Momoh | amomoh2@student.gsu.edu | | | | |
-| Tiya Tulu | ttulu1@student.gsu.edu | | | | |
-| Sineshaw Tesfaye | stesfaye4@student.gsu.edu | | | | |
-| Preston Paris | pparis3@student.gsu.edu | | | | |
+| Khoa Nguyen | knguyen221@student.gsu.edu | TBD | TBD | TBD | 01/30/2026 |
+| Alvin Momoh | amomoh2@student.gsu.edu | TBD | TBD | TBD | TBD |
+| Tiya Tulu | ttulu1@student.gsu.edu | TBD | TBD | TBD | TBD |
+| Sineshaw Tesfaye | stesfaye4@student.gsu.edu | TBD | TBD | TBD | TBD |
+| Preston Paris | pparis3@student.gsu.edu | TBD | TBD | TBD | TBD |
 
 ### 1.3 Teamwork Basics
 
