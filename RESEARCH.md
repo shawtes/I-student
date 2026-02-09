@@ -68,7 +68,7 @@ This document summarizes research into academic papers and open-source projects 
 | Project | URL | Stars | Language | License | Description |
 |---------|-----|-------|----------|---------|-------------|
 | **Cognitive Tutor (Open-source ITS)** | [yrahul3910/student-modeling-project](https://github.com/yrahul3910/student-modeling-project) | 14 | Jupyter Notebook | **MIT** | ITS implementation using various algorithms from the literature for student modeling and knowledge tracing. |
-| **Virtual Tutor** | [Fadh1/Virtual-Tutor](https://github.com/Fadh1/Virtual-Tutor) | 1 | JavaScript | **Not specified** | Adaptive learning platform using Bayesian Knowledge Tracing to personalize content and track mastery. |
+| **Virtual Tutor** | [Fadh1/Virtual-Tutor](https://github.com/Fadh1/Virtual-Tutor) | 1 | JavaScript | ⚠️ **Not specified** | Adaptive learning platform using Bayesian Knowledge Tracing to personalize content and track mastery. |
 
 ### 2.3 Spaced Repetition & Memory Systems
 
@@ -84,15 +84,15 @@ This document summarizes research into academic papers and open-source projects 
 
 | Project | URL | Stars | Language | License | Description |
 |---------|-----|-------|----------|---------|-------------|
-| **Speech-Driven Lessons** | [bobhaotian/speech-driven-lessons](https://github.com/bobhaotian/speech-driven-lessons) | 90 | TypeScript | **Not specified** | AI-powered LMS with course auto-creation and delivery using speech. |
+| **Speech-Driven Lessons** | [bobhaotian/speech-driven-lessons](https://github.com/bobhaotian/speech-driven-lessons) | 90 | TypeScript | ⚠️ **Not specified** | AI-powered LMS with course auto-creation and delivery using speech. |
 | **EduNexus 2.0** | [muhammadibrahim313/EDUNEXUS-2.0](https://github.com/muhammadibrahim313/EDUNEXUS-2.0) | 10 | Python | **MIT** | AI learning platform offering personalized learning, real-time support, and coding mentorship. |
-| **ShikshaSoladu.ai** | [Axestein/shikshasoladu.ai](https://github.com/Axestein/shikshasoladu.ai) | 9 | JavaScript | **Not specified** | Inclusive AI-based education platform for students with disabilities (blind, deaf, dyslexic). |
+| **ShikshaSoladu.ai** | [Axestein/shikshasoladu.ai](https://github.com/Axestein/shikshasoladu.ai) | 9 | JavaScript | ⚠️ **Not specified** | Inclusive AI-based education platform for students with disabilities (blind, deaf, dyslexic). |
 
 ### 2.5 NLP & Question Generation
 
 | Project | URL | Stars | Language | License | Description |
 |---------|-----|-------|----------|---------|-------------|
-| **Auto Q&A Generation (T5/BERT)** | [VigneshKS-4633/Automatic-Question-and-Answer-Generation](https://github.com/VigneshKS-4633/Automatic-Question-and-Answer-Generation-by-using-NLP-and-Flask-Framework) | 1 | HTML/Python | **Not specified** | Uses T5 and BERT models to automatically generate questions and answers from text via Flask. |
+| **Auto Q&A Generation (T5/BERT)** | [VigneshKS-4633/Automatic-Question-and-Answer-Generation](https://github.com/VigneshKS-4633/Automatic-Question-and-Answer-Generation-by-using-NLP-and-Flask-Framework) | 1 | HTML/Python | ⚠️ **Not specified** | Uses T5 and BERT models to automatically generate questions and answers from text via Flask. |
 
 ---
 
