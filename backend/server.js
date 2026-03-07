@@ -7,6 +7,7 @@ const db = require("./db");
 const bcrypt = require("bcrypt");
 
 app.use(express.json());
+app.use(cors());
 
 // Mock in-memory "database"
 const users = [];
@@ -35,14 +36,14 @@ app.post("/register", async (req, res) => {
 
 const session = require("express-session");
 
-// Session middleware (place near top, before routes)
+// Session middleware
 app.use(
-  session({
+session({
     secret: "your_secret_key", // change this in production
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } // set true only with HTTPS
-  })
+    cookie: { secure: false } // true only with HTTPS
+})
 );
 
 // Login route
@@ -85,9 +86,6 @@ db.query("SELECT 1 + 1 AS result")
     .catch(err => {
     console.error("MySQL error:", err);
     });
-
-app.use(cors());
-app.use(express.json());
 
 app.get("/", (req, res) => {
     res.send("Backend is running");
