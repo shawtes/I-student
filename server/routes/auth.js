@@ -1,101 +1,30 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
-const { authLimiter } = require('../middleware/rateLimiter');
 
-// Register - with strict rate limiting
-router.post('/register', authLimiter, async (req, res) => {
-  try {
-    const { email, password, name, role } = req.body;
-
-    // Check if user exists
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
-
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create user
-    user = new User({
-      email,
-      password: hashedPassword,
-      name,
-      role: role || 'student'
-    });
-
-    await user.save();
-
-    // Create token
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.status(201).json({
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        role: user.role
-      }
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Login - with strict rate limiting
-router.post('/login', authLimiter, async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Check if user exists
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-
-    // Create token
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        role: user.role
-      }
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get current user
+// Get or create current user from Cognito token
 router.get('/me', auth, async (req, res) => {
   try {
-    res.json(req.user);
+    let user = await User.findOne({ cognitoId: req.user.cognitoId });
+
+    if (!user) {
+      // first time this Cognito user hits our backend - create a record
+      user = new User({
+        cognitoId: req.user.cognitoId,
+        email: req.user.email,
+        name: req.user.name,
+        role: 'student'
+      });
+      await user.save();
+    }
+
+    res.json({
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -106,12 +35,14 @@ router.get('/me', auth, async (req, res) => {
 router.put('/profile', auth, async (req, res) => {
   try {
     const { name, bio, major, year, interests, availability } = req.body;
-    
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      { name, bio, major, year, interests, availability },
-      { new: true }
-    ).select('-password');
+
+    let user = await User.findOne({ cognitoId: req.user.cognitoId });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    Object.assign(user, { name, bio, major, year, interests, availability });
+    await user.save();
 
     res.json(user);
   } catch (error) {

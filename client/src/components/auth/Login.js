@@ -17,9 +17,13 @@ function Login() {
 
     try {
       const user = await login(email, password);
-      navigate(`/${user.role}`);
+      if (user?.role) {
+        navigate(`/${user.role}`);
+      } else {
+        navigate('/student');
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -29,9 +33,9 @@ function Login() {
     <div style={{ maxWidth: '400px', margin: '100px auto' }}>
       <div className="card">
         <h1 style={{ marginBottom: '20px', textAlign: 'center' }}>I-Student Login</h1>
-        
+
         {error && <div className="error">{error}</div>}
-        
+
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Email</label>
