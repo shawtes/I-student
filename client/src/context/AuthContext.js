@@ -21,6 +21,19 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAuth = async () => {
+    // Dev login bypass: if localStorage has a devUser, use it as-is and skip
+    // the entire Cognito round trip. This is how the /dev-login page works.
+    const devUser = localStorage.getItem('devUser');
+    if (devUser) {
+      try {
+        setUser(JSON.parse(devUser));
+      } catch {
+        localStorage.removeItem('devUser');
+      }
+      setLoading(false);
+      return;
+    }
+
     try {
       const currentUser = await getCurrentUser();
       const session = await fetchAuthSession();
@@ -46,8 +59,22 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   };
 
+  const devLogin = (role) => {
+    const fake = {
+      email: `${role}@local.test`,
+      name: role.charAt(0).toUpperCase() + role.slice(1) + ' User',
+      role,
+      cognitoId: 'dev-' + role
+    };
+    localStorage.setItem('devUser', JSON.stringify(fake));
+    setUser(fake);
+    return fake;
+  };
+
   const login = async (email, password) => {
+    try { await signOut(); } catch {}
     const result = await signIn({ username: email, password });
+    console.log('signIn result:', JSON.stringify(result));
     if (result.isSignedIn) {
       const session = await fetchAuthSession();
       const token = session.tokens?.idToken?.toString();
@@ -62,6 +89,9 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
         return userData;
       }
+    }
+    if (result.nextStep) {
+      throw new Error(`Sign-in requires: ${result.nextStep.signInStep}`);
     }
     return result;
   };
@@ -82,8 +112,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await signOut();
+    const wasDev = localStorage.getItem('devUser');
+    localStorage.removeItem('devUser');
     localStorage.removeItem('token');
+    if (!wasDev) {
+      try { await signOut(); } catch {}
+    }
     setUser(null);
   };
 
@@ -93,7 +127,8 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     confirmAccount,
-    logout
+    logout,
+    devLogin
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -16,6 +16,27 @@ function getKey(header, callback) {
 }
 
 const auth = (req, res, next) => {
+  // Dev bypass: set DEV_AUTH=1 to accept x-dev-user headers instead of a real
+  // Cognito JWT. Useful for local testing without Amplify configured. Never
+  // enable this in production.
+  if (process.env.DEV_AUTH === '1' && process.env.NODE_ENV !== 'production') {
+    const devUser = req.header('x-dev-user');
+    if (devUser) {
+      try {
+        const parsed = JSON.parse(devUser);
+        req.user = {
+          cognitoId: parsed.cognitoId || 'dev-' + (parsed.email || 'user'),
+          email: parsed.email || 'dev@example.com',
+          name: parsed.name || 'Dev User',
+          role: parsed.role || 'student'
+        };
+        return next();
+      } catch {
+        return res.status(400).json({ message: 'Invalid x-dev-user header' });
+      }
+    }
+  }
+
   const token = req.header('Authorization')?.replace('Bearer ', '');
 
   if (!token) {

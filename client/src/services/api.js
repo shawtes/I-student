@@ -2,15 +2,20 @@ import axios from 'axios';
 import { fetchAuthSession } from 'aws-amplify/auth';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: process.env.REACT_APP_API_URL || '/api',
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// attach Cognito token to every request
+// attach Cognito token to every request (or dev header in dev mode)
 api.interceptors.request.use(
   async (config) => {
+    const devUser = localStorage.getItem('devUser');
+    if (devUser) {
+      config.headers['x-dev-user'] = devUser;
+      return config;
+    }
     try {
       const session = await fetchAuthSession();
       const token = session.tokens?.idToken?.toString();
