@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 
 const FileSchema = new mongoose.Schema({
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    type: String,
+    required: true,
+    index: true
   },
   filename: {
     type: String,
@@ -18,6 +18,7 @@ const FileSchema = new mongoose.Schema({
   fileSize: Number,
   storageUrl: String,
   localPath: String,
+  s3Key: String,
   transcription: {
     text: String,
     status: {

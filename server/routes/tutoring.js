@@ -16,7 +16,7 @@ router.post('/ask', auth, aiLimiter, async (req, res) => {
     const answer = await tutoringService.answerQuestion(
       question,
       fileIds || [],
-      req.user._id
+      req.user.cognitoId
     );
 
     res.json({ answer });

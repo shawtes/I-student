@@ -2,9 +2,13 @@ const { OpenAI } = require('openai');
 const File = require('../models/File');
 const fs = require('fs');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+let openai;
+function getOpenAI() {
+  if (!openai) {
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return openai;
+}
 
 class TutoringService {
   async answerQuestion(question, fileIds, userId) {
@@ -45,7 +49,7 @@ class TutoringService {
         ? `Context from study materials:\n${context}\n\nQuestion: ${question}`
         : `Question: ${question}`;
 
-      const completion = await openai.chat.completions.create({
+      const completion = await getOpenAI().chat.completions.create({
         model: 'gpt-4',
         messages: [
           { role: 'system', content: systemPrompt },

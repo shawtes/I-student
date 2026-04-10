@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 
 const StudyContentSchema = new mongoose.Schema({
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
+    index: true,
     required: true
   },
   type: {

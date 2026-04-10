@@ -16,142 +16,96 @@ function Dashboard() {
   }, []);
 
   const loadStats = async () => {
-    try {
-      const response = await api.get('/admin/stats');
-      setStats(response.data);
-    } catch (error) {
-      console.error('Error loading stats:', error);
-    } finally {
-      setLoading(false);
-    }
+    try { setStats((await api.get('/admin/stats')).data); }
+    catch {} finally { setLoading(false); }
   };
 
   const loadUsers = async () => {
-    try {
-      const response = await api.get('/admin/users');
-      setUsers(response.data);
-    } catch (error) {
-      console.error('Error loading users:', error);
-    }
+    try { setUsers((await api.get('/admin/users')).data); } catch {}
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
-
-    try {
-      await api.delete(`/admin/users/${userId}`);
-      loadUsers();
-    } catch (error) {
-      alert('Error deleting user');
-    }
+    if (!window.confirm('Are you sure?')) return;
+    try { await api.delete(`/admin/users/${userId}`); loadUsers(); }
+    catch { alert('Failed to delete user'); }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const handleLogout = () => { logout(); navigate('/login'); };
+
+  const statCards = stats ? [
+    { label: 'Total users', value: stats.users?.total || 0, sub: `${stats.users?.students || 0} students, ${stats.users?.admins || 0} admins`, color: 'var(--accent)' },
+    { label: 'Files uploaded', value: stats.files || 0, color: 'var(--green)' },
+    { label: 'Study groups', value: stats.groups || 0, color: 'var(--orange)' },
+    { label: 'Study content', value: stats.studyContent || 0, color: 'var(--purple)' },
+  ] : [];
 
   return (
     <div>
       <nav className="nav">
-        <div className="container">
-          <div className="nav-links" style={{ justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-              <h2>I-Student Admin</h2>
-            </div>
-            <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-              <span>Welcome, {user?.name}</span>
-              <button onClick={handleLogout} className="btn btn-secondary">Logout</button>
-            </div>
+        <div className="nav-inner">
+          <span className="nav-brand">I-Student Admin</span>
+          <div className="nav-right">
+            <span className="nav-user">{user?.name || user?.email}</span>
+            <button onClick={handleLogout} className="btn btn-secondary btn-sm">Log out</button>
           </div>
         </div>
       </nav>
 
-      <div className="container">
-        <h1>Admin Dashboard</h1>
+      <div className="container" style={{ paddingTop: '28px', paddingBottom: '48px' }}>
+        <div className="page-header">
+          <h1>Admin Dashboard</h1>
+          <p>System overview and user management</p>
+        </div>
 
         {loading ? (
           <div className="loading">Loading...</div>
         ) : (
           <>
-            <div className="grid grid-3">
-              <div className="card">
-                <h3>👥 Total Users</h3>
-                <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#4CAF50' }}>
-                  {stats?.users.total || 0}
-                </p>
-                <p>Students: {stats?.users.students || 0} | Admins: {stats?.users.admins || 0}</p>
-              </div>
-
-              <div className="card">
-                <h3>📁 Files Uploaded</h3>
-                <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#2196F3' }}>
-                  {stats?.files || 0}
-                </p>
-              </div>
-
-              <div className="card">
-                <h3>👥 Study Groups</h3>
-                <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#FF9800' }}>
-                  {stats?.groups || 0}
-                </p>
-              </div>
-
-              <div className="card">
-                <h3>📚 Study Content</h3>
-                <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#9C27B0' }}>
-                  {stats?.studyContent || 0}
-                </p>
-              </div>
+            <div className="grid grid-3" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+              {statCards.map(s => (
+                <div className="card" key={s.label}>
+                  <span className="stat-label">{s.label}</span>
+                  <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+                  {s.sub && <p style={{ fontSize: '0.8rem', marginTop: '2px' }}>{s.sub}</p>}
+                </div>
+              ))}
             </div>
 
-            <div className="card">
-              <h2>User Management</h2>
+            <div className="card" style={{ marginTop: '8px' }}>
+              <h2>Users</h2>
               {users.length === 0 ? (
-                <p>No users found.</p>
+                <p style={{ marginTop: '12px' }}>No users found.</p>
               ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #ddd' }}>
-                      <th style={{ textAlign: 'left', padding: '10px' }}>Name</th>
-                      <th style={{ textAlign: 'left', padding: '10px' }}>Email</th>
-                      <th style={{ textAlign: 'left', padding: '10px' }}>Role</th>
-                      <th style={{ textAlign: 'left', padding: '10px' }}>Joined</th>
-                      <th style={{ textAlign: 'left', padding: '10px' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map(u => (
-                      <tr key={u._id} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '10px' }}>{u.name}</td>
-                        <td style={{ padding: '10px' }}>{u.email}</td>
-                        <td style={{ padding: '10px' }}>
-                          <span style={{
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            background: u.role === 'admin' ? '#ff9800' : '#4CAF50',
-                            color: 'white',
-                            fontSize: '12px'
-                          }}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td style={{ padding: '10px' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
-                        <td style={{ padding: '10px' }}>
-                          {u._id !== user._id && (
-                            <button
-                              onClick={() => handleDeleteUser(u._id)}
-                              className="btn btn-danger"
-                              style={{ fontSize: '12px', padding: '5px 10px' }}
-                            >
-                              Delete
-                            </button>
-                          )}
-                        </td>
+                <div className="table-wrap" style={{ marginTop: '12px' }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Joined</th>
+                        <th></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {users.map(u => (
+                        <tr key={u._id}>
+                          <td style={{ fontWeight: 500 }}>{u.name}</td>
+                          <td>{u.email}</td>
+                          <td>
+                            <span className={`badge ${u.role === 'admin' ? 'badge-orange' : 'badge-green'}`}>{u.role}</span>
+                          </td>
+                          <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+                          <td>
+                            {u._id !== user._id && (
+                              <button onClick={() => handleDeleteUser(u._id)} className="btn btn-danger btn-sm">Delete</button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </>

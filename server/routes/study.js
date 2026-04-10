@@ -18,12 +18,12 @@ router.post('/generate', auth, aiLimiter, async (req, res) => {
       type,
       title || `${type} on ${topic || 'topic'}`,
       fileIds || [],
-      req.user._id,
+      req.user.cognitoId,
       topic
     );
 
     const studyContent = new StudyContent({
-      userId: req.user._id,
+      userId: req.user.cognitoId,
       type,
       title: title || `${type} on ${topic || 'topic'}`,
       content,
@@ -43,7 +43,7 @@ router.post('/generate', auth, aiLimiter, async (req, res) => {
 router.get('/', auth, async (req, res) => {
   try {
     const { type } = req.query;
-    const query = { userId: req.user._id };
+    const query = { userId: req.user.cognitoId };
 
     if (type) {
       query.type = type;
@@ -66,7 +66,7 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Content not found' });
     }
 
-    if (content.userId.toString() !== req.user._id.toString() && !content.isPublic) {
+    if (content.userId.toString() !== req.user.cognitoId.toString() && !content.isPublic) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -86,7 +86,7 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Content not found' });
     }
 
-    if (content.userId.toString() !== req.user._id.toString()) {
+    if (content.userId.toString() !== req.user.cognitoId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
 

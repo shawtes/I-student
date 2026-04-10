@@ -19,7 +19,7 @@ router.post('/sessions', auth, async (req, res) => {
         startTime,
         endTime,
         participants,
-        organizer: req.user._id
+        organizer: req.user.cognitoId
       }
     });
   } catch (error) {
@@ -46,7 +46,7 @@ router.put('/availability', auth, async (req, res) => {
     const { availability } = req.body;
 
     const user = await User.findByIdAndUpdate(
-      req.user._id,
+      req.user.cognitoId,
       { availability },
       { new: true }
     ).select('-password');

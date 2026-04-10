@@ -1,9 +1,13 @@
 const { OpenAI } = require('openai');
 const fs = require('fs');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+let openai;
+function getOpenAI() {
+  if (!openai && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key') {
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return openai;
+}
 
 class TranscriptionService {
   async transcribe(fileId, filePath) {
@@ -18,7 +22,7 @@ class TranscriptionService {
       const audioFile = fs.createReadStream(filePath);
 
       // Transcribe using Whisper
-      const transcription = await openai.audio.transcriptions.create({
+      const transcription = await getOpenAI().audio.transcriptions.create({
         file: audioFile,
         model: 'whisper-1',
         language: 'en'

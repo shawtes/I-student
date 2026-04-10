@@ -14,7 +14,7 @@ router.post('/:fileId', auth, aiLimiter, async (req, res) => {
       return res.status(404).json({ message: 'File not found' });
     }
 
-    if (file.userId.toString() !== req.user._id.toString()) {
+    if (file.userId.toString() !== req.user.cognitoId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -67,7 +67,7 @@ router.get('/:fileId/status', auth, async (req, res) => {
       return res.status(404).json({ message: 'File not found' });
     }
 
-    if (file.userId.toString() !== req.user._id.toString()) {
+    if (file.userId.toString() !== req.user.cognitoId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
 

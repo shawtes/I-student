@@ -2,9 +2,13 @@ const { OpenAI } = require('openai');
 const File = require('../models/File');
 const fs = require('fs');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+let openai;
+function getOpenAI() {
+  if (!openai) {
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return openai;
+}
 
 class StudyService {
   async generateContent(type, title, fileIds, userId, topic) {
@@ -39,7 +43,7 @@ class StudyService {
 
       const prompt = this.getPromptForType(type, topic, context);
 
-      const completion = await openai.chat.completions.create({
+      const completion = await getOpenAI().chat.completions.create({
         model: 'gpt-4',
         messages: [
           { role: 'system', content: 'You are an expert educational content creator.' },

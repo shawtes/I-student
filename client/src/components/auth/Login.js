@@ -17,11 +17,7 @@ function Login() {
 
     try {
       const user = await login(email, password);
-      if (user?.role) {
-        navigate(`/${user.role}`);
-      } else {
-        navigate('/student');
-      }
+      navigate(user?.role ? `/${user.role}` : '/student');
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {
@@ -30,40 +26,45 @@ function Login() {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '100px auto' }}>
-      <div className="card">
-        <h1 style={{ marginBottom: '20px', textAlign: 'center' }}>I-Student Login</h1>
+    <div className="auth-wrapper">
+      <div className="auth-card">
+        <h1>Welcome back</h1>
+        <p className="auth-subtitle">Sign in to your I-Student account</p>
 
-        {error && <div className="error">{error}</div>}
+        {error && <div className="alert alert-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Email</label>
+            <label htmlFor="email">Email address</label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@university.edu"
               required
             />
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label htmlFor="password">Password</label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
               required
             />
           </div>
 
           <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
 
-        <p style={{ marginTop: '20px', textAlign: 'center' }}>
-          Don't have an account? <Link to="/register">Register</Link>
+        <p className="auth-footer">
+          New here? <Link to="/register">Create an account</Link>
         </p>
       </div>
     </div>

@@ -8,16 +8,14 @@ function Tutoring() {
   const [files, setFiles] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
 
-  useEffect(() => {
-    loadFiles();
-  }, []);
+  useEffect(() => { loadFiles(); }, []);
 
   const loadFiles = async () => {
     try {
       const response = await api.get('/files');
       setFiles(response.data);
     } catch (error) {
-      console.error('Error loading files:', error);
+      console.error('Failed to load files:', error);
     }
   };
 
@@ -27,86 +25,79 @@ function Tutoring() {
     setAnswer('');
 
     try {
-      const response = await api.post('/tutoring/ask', {
-        question,
-        fileIds: selectedFiles
-      });
+      const response = await api.post('/tutoring/ask', { question, fileIds: selectedFiles });
       setAnswer(response.data.answer);
     } catch (error) {
-      setAnswer('Error: ' + (error.response?.data?.message || 'Failed to get answer'));
+      setAnswer('Something went wrong. ' + (error.response?.data?.message || 'Please try again.'));
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleFileSelection = (fileId) => {
+  const toggleFile = (fileId) => {
     setSelectedFiles(prev =>
-      prev.includes(fileId)
-        ? prev.filter(id => id !== fileId)
-        : [...prev, fileId]
+      prev.includes(fileId) ? prev.filter(id => id !== fileId) : [...prev, fileId]
     );
   };
 
   return (
     <div>
-      <h1>AI Tutor (RAG)</h1>
-      <p>Ask questions and get answers grounded in your study materials</p>
+      <div className="page-header">
+        <h1>AI Tutor</h1>
+        <p>Ask questions grounded in your study materials</p>
+      </div>
 
       <div className="grid grid-2">
         <div className="card">
-          <h2>Your Question</h2>
-          <form onSubmit={handleSubmit}>
+          <h2>Ask a question</h2>
+          <form onSubmit={handleSubmit} style={{ marginTop: '14px' }}>
             <div className="form-group">
-              <label>Question</label>
+              <label htmlFor="question">Your question</label>
               <textarea
+                id="question"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 rows="4"
-                placeholder="Ask any question about your study materials..."
+                placeholder="What would you like to understand?"
                 required
               />
             </div>
 
-            <div className="form-group">
-              <label>Select Files (optional)</label>
-              <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #ddd', padding: '10px', borderRadius: '4px' }}>
-                {files.length === 0 ? (
-                  <p>No files available. Upload files first.</p>
-                ) : (
-                  files.map(file => (
-                    <div key={file._id} style={{ marginBottom: '5px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={selectedFiles.includes(file._id)}
-                          onChange={() => toggleFileSelection(file._id)}
-                          style={{ width: 'auto', marginRight: '10px' }}
-                        />
-                        {file.originalName}
-                      </label>
-                    </div>
-                  ))
-                )}
+            {files.length > 0 && (
+              <div className="form-group">
+                <label>Reference files (optional)</label>
+                <div className="file-select">
+                  {files.map(file => (
+                    <label key={file._id}>
+                      <input
+                        type="checkbox"
+                        checked={selectedFiles.includes(file._id)}
+                        onChange={() => toggleFile(file._id)}
+                      />
+                      {file.originalName}
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Getting Answer...' : 'Ask'}
+              {loading ? 'Thinking...' : 'Ask'}
             </button>
           </form>
         </div>
 
         <div className="card">
-          <h2>Answer</h2>
-          {loading ? (
-            <div className="loading">Thinking...</div>
-          ) : answer ? (
-            <div style={{ padding: '15px', background: '#f9f9f9', borderRadius: '4px', whiteSpace: 'pre-wrap' }}>
-              {answer}
-            </div>
-          ) : (
-            <p style={{ color: '#999' }}>Your answer will appear here...</p>
-          )}
+          <h2>Response</h2>
+          <div style={{ marginTop: '14px' }}>
+            {loading ? (
+              <div className="loading">Working on it...</div>
+            ) : answer ? (
+              <div className="answer-box">{answer}</div>
+            ) : (
+              <p>Ask a question and the answer will appear here.</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
