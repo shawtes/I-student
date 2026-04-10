@@ -1,0 +1,12 @@
+node_modules/
+client/src/
+client/public/
+client/node_modules/
+frontend/
+docs/
+uploads/
+.env
+*.sql
+*.md
+.git/
+.elasticbeanstalk/logs/

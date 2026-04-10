@@ -1,0 +1,13 @@
+Deployment Overview — I-Student
+
+So for hosting and deployment we split things up across a few AWS services.
+
+The frontend is a React app and we deploy it through AWS Amplify. Amplify handles the build and hosting for us — whenever we push to main it picks up the changes, runs the build, and deploys it automatically. It also gives us a live URL with HTTPS out of the box which is nice so we didnt have to mess around with certificates or anything like that. We connected it straight to our GitHub repo so the whole CI/CD pipeline is basically just git push and Amplify takes care of the rest.
+
+For the backend we went with AWS Elastic Beanstalk. The backend is a Node.js/Express API so Beanstalk made sense because it handles the server provisioning, load balancing, and scaling without us having to manually configure EC2 instances or anything. We just zip up the server code and deploy it, or use the EB CLI to push updates. Beanstalk also manages environment variables for us which is where we keep our database connection strings, API keys, and other secrets. If traffic ever spikes it can scale up automatically which was one of the main reasons we picked it over just running a raw EC2 instance.
+
+For authentication we use Amazon Cognito. Cognito handles user sign-up, sign-in, email verification, and token management. When a new user registers they get a verification code sent to their email and they have to confirm it before they can log in. After that Cognito issues JWT tokens that we use to authenticate API requests to the backend. We went with Cognito because it takes a lot of the security burden off of us — things like password policies, token expiration and refresh, and brute force protection are all handled on their end. It also integrates well with the rest of our AWS setup.
+
+So basically the flow is: user hits the Amplify-hosted frontend, logs in through Cognito, and then the frontend makes API calls to the Beanstalk backend with the JWT token attached. The backend verifies the token and serves the request. Everything stays within the AWS ecosystem which keeps things simple and consistent.
+
+We also use MongoDB Atlas for the database which is hosted separately but connects to the Beanstalk backend through a connection string in the environment variables. The AI features (transcription, tutoring, quiz generation) hit the OpenAI API from the backend.
