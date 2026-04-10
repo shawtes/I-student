@@ -41,9 +41,14 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         localStorage.setItem('token', token);
       }
-      // try to get user profile from our backend
+      // try to get user profile from our backend. On the very first hit we
+      // pass the role the user picked at registration so the backend creates
+      // the record with the correct role.
       try {
-        const response = await api.get('/auth/me');
+        const pendingRole = localStorage.getItem('pendingRole');
+        const url = pendingRole ? `/auth/me?role=${encodeURIComponent(pendingRole)}` : '/auth/me';
+        const response = await api.get(url);
+        if (pendingRole) localStorage.removeItem('pendingRole');
         setUser(response.data);
       } catch {
         // user exists in Cognito but not in our DB yet - set basic info
@@ -81,7 +86,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', token);
       // get or create user in our backend
       try {
-        const response = await api.get('/auth/me');
+        const pendingRole = localStorage.getItem('pendingRole');
+        const url = pendingRole ? `/auth/me?role=${encodeURIComponent(pendingRole)}` : '/auth/me';
+        const response = await api.get(url);
+        if (pendingRole) localStorage.removeItem('pendingRole');
         setUser(response.data);
         return response.data;
       } catch {

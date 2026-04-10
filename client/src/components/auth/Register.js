@@ -8,7 +8,8 @@ function Register() {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'student'
   });
   const [confirmCode, setConfirmCode] = useState('');
   const [error, setError] = useState('');
@@ -31,6 +32,7 @@ function Register() {
 
     setLoading(true);
     try {
+      localStorage.setItem('pendingRole', formData.role);
       await register(formData.email, formData.password, formData.name);
       setStep('confirm');
     } catch (err) {
@@ -116,6 +118,39 @@ function Register() {
           <div className="form-group">
             <label htmlFor="reg-confirm">Confirm password</label>
             <input id="reg-confirm" type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Re-enter password" required />
+          </div>
+
+          <div className="form-group">
+            <label>I am signing up as</label>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+              {['student', 'tutor', 'admin'].map(r => (
+                <label
+                  key={r}
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    padding: '10px',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-sm)',
+                    cursor: 'pointer',
+                    background: formData.role === r ? 'var(--accent-light)' : 'transparent',
+                    color: formData.role === r ? 'var(--accent)' : 'inherit',
+                    textTransform: 'capitalize',
+                    fontWeight: formData.role === r ? 600 : 400
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="role"
+                    value={r}
+                    checked={formData.role === r}
+                    onChange={handleChange}
+                    style={{ display: 'none' }}
+                  />
+                  {r}
+                </label>
+              ))}
+            </div>
           </div>
 
           <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
