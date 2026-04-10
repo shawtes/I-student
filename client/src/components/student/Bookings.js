@@ -1,0 +1,83 @@
+import { useState, useEffect } from 'react';
+import api from '../../services/api';
+
+function Bookings() {
+  const [bookings, setBookings] = useState([]);
+  const [message, setMessage] = useState({ text: '', type: '' });
+
+  useEffect(() => { load(); }, []);
+
+  const load = async () => {
+    try {
+      const res = await api.get('/bookings');
+      setBookings(res.data);
+    } catch {}
+  };
+
+  const pay = async (b) => {
+    const method = prompt('Payment method? (card / paypal / applepay / fail to test failure)', 'card');
+    if (!method) return;
+    try {
+      await api.post('/payments', {
+        bookingId: b._id,
+        amount: 50,
+        method
+      });
+      setMessage({ text: 'Paid. Session confirmed.', type: 'success' });
+      load();
+    } catch (err) {
+      setMessage({ text: err.response?.data?.message || 'Payment failed', type: 'error' });
+    }
+  };
+
+  const cancel = async (b) => {
+    if (!window.confirm('Cancel this session?')) return;
+    try {
+      await api.delete(`/bookings/${b._id}`);
+      load();
+    } catch {}
+  };
+
+  return (
+    <div>
+      <div className="page-header">
+        <h1>My bookings</h1>
+        <p>Track pending, accepted, and confirmed sessions</p>
+      </div>
+
+      {message.text && (
+        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>{message.text}</div>
+      )}
+
+      <div className="card">
+        {bookings.length === 0 ? (
+          <p>No bookings yet. Find a tutor to get started.</p>
+        ) : (
+          bookings.map(b => (
+            <div key={b._id} style={{ padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <strong>{b.subject || 'Tutoring session'}</strong>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    {b.tutor?.name} &middot; {new Date(b.startTime).toLocaleString()} &middot; {b.durationMinutes}min
+                  </div>
+                  <span className="badge badge-blue">{b.status}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {b.status === 'accepted' && (
+                    <button className="btn btn-primary btn-sm" onClick={() => pay(b)}>Pay</button>
+                  )}
+                  {b.status !== 'cancelled' && b.status !== 'completed' && (
+                    <button className="btn btn-secondary btn-sm" onClick={() => cancel(b)}>Cancel</button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default Bookings;

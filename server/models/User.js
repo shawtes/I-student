@@ -19,9 +19,15 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['student', 'admin'],
+    enum: ['student', 'tutor', 'admin'],
     default: 'student'
   },
+  // tutor-only profile fields, ignored for students/admins
+  subjects: [String],
+  hourlyRate: Number,
+  learningPrefs: [String],
+  ratingAverage: { type: Number, default: 0 },
+  ratingCount: { type: Number, default: 0 },
   avatar: String,
   bio: String,
   major: String,

@@ -14,7 +14,7 @@ router.get('/me', auth, async (req, res) => {
         cognitoId: req.user.cognitoId,
         email: req.user.email,
         name: req.user.name,
-        role: 'student'
+        role: req.user.role || 'student'
       });
       await user.save();
     }
@@ -23,7 +23,11 @@ router.get('/me', auth, async (req, res) => {
       id: user._id,
       email: user.email,
       name: user.name,
-      role: user.role
+      role: user.role,
+      subjects: user.subjects || [],
+      hourlyRate: user.hourlyRate,
+      learningPrefs: user.learningPrefs || [],
+      bio: user.bio
     });
   } catch (error) {
     console.error(error);
@@ -34,14 +38,17 @@ router.get('/me', auth, async (req, res) => {
 // Update profile
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { name, bio, major, year, interests, availability } = req.body;
+    const { name, bio, major, year, interests, availability, subjects, hourlyRate, learningPrefs } = req.body;
 
     let user = await User.findOne({ cognitoId: req.user.cognitoId });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    Object.assign(user, { name, bio, major, year, interests, availability });
+    const patch = { name, bio, major, year, interests, availability, subjects, learningPrefs };
+    Object.keys(patch).forEach(k => patch[k] === undefined && delete patch[k]);
+    if (hourlyRate !== undefined) patch.hourlyRate = hourlyRate;
+    Object.assign(user, patch);
     await user.save();
 
     res.json(user);

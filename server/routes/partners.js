@@ -1,96 +1,143 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const loadUser = require('../middleware/loadUser');
 const User = require('../models/User');
 const Group = require('../models/Group');
 
-// Find study partners based on interests and availability
-router.get('/find', auth, async (req, res) => {
+// Find study partners based on shared interests
+router.get('/find', auth, loadUser, async (req, res) => {
   try {
-    const currentUser = await User.findById(req.user._id);
-    
-    // Find users with similar interests
+    const me = req.dbUser;
     const partners = await User.find({
-      _id: { $ne: req.user._id },
+      _id: { $ne: me._id },
       role: 'student',
-      interests: { $in: currentUser.interests }
-    }).select('-password').limit(20);
-
+      interests: me.interests?.length ? { $in: me.interests } : { $exists: true }
+    }).select('name email bio major year interests').limit(20);
     res.json(partners);
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Send partner request
-router.post('/request', auth, async (req, res) => {
+// Add a partner
+router.post('/request', auth, loadUser, async (req, res) => {
   try {
     const { partnerId } = req.body;
+    if (!partnerId) return res.status(400).json({ message: 'partnerId required' });
+    const me = req.dbUser;
+    if (!me.studyPartners.map(String).includes(String(partnerId))) {
+      me.studyPartners.push(partnerId);
+      await me.save();
+    }
+    res.json({ message: 'Partner added' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
-    const user = await User.findById(req.user._id);
-    
-    if (!user.studyPartners.includes(partnerId)) {
-      user.studyPartners.push(partnerId);
-      await user.save();
+// My partners
+router.get('/', auth, loadUser, async (req, res) => {
+  try {
+    await req.dbUser.populate('studyPartners', 'name email bio major year');
+    res.json(req.dbUser.studyPartners);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create a group
+router.post('/groups', auth, loadUser, async (req, res) => {
+  try {
+    const { name, description, course, memberEmails } = req.body;
+    if (!name) return res.status(400).json({ message: 'name required' });
+
+    let extra = [];
+    if (Array.isArray(memberEmails) && memberEmails.length > 0) {
+      const found = await User.find({ email: { $in: memberEmails } }).select('_id email');
+      const foundEmails = new Set(found.map(u => u.email));
+      const missing = memberEmails.filter(e => !foundEmails.has(e));
+      if (missing.length) {
+        return res.status(422).json({ message: 'Some emails not found', missing });
+      }
+      extra = found.map(u => u._id);
     }
 
-    res.json({ message: 'Partner added successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get user's study partners
-router.get('/', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).populate('studyPartners', '-password');
-    res.json(user.studyPartners);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Create study group
-router.post('/groups', auth, async (req, res) => {
-  try {
-    const { name, description, course, members } = req.body;
-
-    const group = new Group({
+    const group = await Group.create({
       name,
       description,
       course,
-      admin: req.user._id,
-      members: [req.user._id, ...(members || [])]
+      admin: req.dbUser._id,
+      members: [req.dbUser._id, ...extra]
     });
 
-    await group.save();
-
-    // Add group to users
     await User.updateMany(
       { _id: { $in: group.members } },
-      { $push: { groups: group._id } }
+      { $addToSet: { groups: group._id } }
     );
 
     res.status(201).json(group);
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Get user's groups
-router.get('/groups', auth, async (req, res) => {
+// List groups I'm in
+router.get('/groups', auth, loadUser, async (req, res) => {
   try {
-    const groups = await Group.find({ members: req.user._id })
+    const groups = await Group.find({ members: req.dbUser._id })
       .populate('admin', 'name email')
       .populate('members', 'name email');
-    
     res.json(groups);
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Request to join
+router.post('/groups/:id/join', auth, loadUser, async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Not found' });
+    if (group.members.map(String).includes(String(req.dbUser._id))) {
+      return res.status(400).json({ message: 'Already a member' });
+    }
+    if (!group.pendingRequests.map(String).includes(String(req.dbUser._id))) {
+      group.pendingRequests.push(req.dbUser._id);
+      await group.save();
+    }
+    res.json({ message: 'Join request sent' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Admin approves or denies a join request
+router.patch('/groups/:id/requests/:userId', auth, loadUser, async (req, res) => {
+  try {
+    const { action } = req.body; // 'approve' | 'deny'
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Not found' });
+    if (String(group.admin) !== String(req.dbUser._id)) {
+      return res.status(403).json({ message: 'Admin only' });
+    }
+    const idx = group.pendingRequests.findIndex(u => String(u) === req.params.userId);
+    if (idx === -1) return res.status(404).json({ message: 'No such request' });
+    group.pendingRequests.splice(idx, 1);
+    if (action === 'approve') {
+      group.members.push(req.params.userId);
+      await User.findByIdAndUpdate(req.params.userId, { $addToSet: { groups: group._id } });
+    }
+    await group.save();
+    res.json(group);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
