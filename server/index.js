@@ -43,6 +43,7 @@ app.use('/api/study', require('./routes/study'));
 app.use('/api/scheduling', require('./routes/scheduling'));
 app.use('/api/partners', require('./routes/partners'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/subscriptions', require('./routes/subscriptions'));
 
 // Serve React frontend in production
 if (process.env.NODE_ENV === 'production') {

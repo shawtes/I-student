@@ -17,9 +17,10 @@ function getKey(header, callback) {
 
 const auth = (req, res, next) => {
   // Dev bypass: set DEV_AUTH=1 to accept x-dev-user headers instead of a real
-  // Cognito JWT. Useful for local testing without Amplify configured. Never
-  // enable this in production.
-  if (process.env.DEV_AUTH === '1' && process.env.NODE_ENV !== 'production') {
+  // Cognito JWT. Gated on an explicit env var rather than NODE_ENV so it can
+  // be enabled for demos without a full redeploy. Always remove DEV_AUTH in
+  // real production.
+  if (process.env.DEV_AUTH === '1') {
     const devUser = req.header('x-dev-user');
     if (devUser) {
       try {

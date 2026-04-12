@@ -15,6 +15,7 @@ import HelpDesk from './HelpDesk';
 import Forum from './Forum';
 import Flashcards from './Flashcards';
 import MyClasses from './MyClasses';
+import Billing from './Billing';
 
 function Dashboard() {
   const { user, logout } = useAuth();
@@ -110,6 +111,7 @@ function Dashboard() {
             <div style={S.divider} />
 
             <NavItem to="/student/help" label="Help Desk" icon="Hd" active={isActive('/student/help')} />
+            <NavItem to="/student/billing" label="Billing" icon="$" active={isActive('/student/billing')} />
 
             {/* User + logout */}
             <div style={S.userSection}>
@@ -149,6 +151,7 @@ function Dashboard() {
             <Route path="/forum" element={<Forum />} />
             <Route path="/flashcards" element={<Flashcards />} />
           <Route path="/classes" element={<MyClasses />} />
+          <Route path="/billing" element={<Billing />} />
           </Routes>
         </div>
       </main>

@@ -3,7 +3,59 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const loadUser = require('../middleware/loadUser');
 const Booking = require('../models/Booking');
+const Payment = require('../models/Payment');
 const User = require('../models/User');
+
+// Tutor earnings summary
+router.get('/earnings', auth, loadUser, async (req, res) => {
+  try {
+    if (req.dbUser.role !== 'tutor' && req.dbUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Tutors only' });
+    }
+    const bookings = await Booking.find({ tutor: req.dbUser._id })
+      .populate('payment')
+      .populate('student', 'name email');
+
+    let totalEarned = 0;
+    let pendingPayout = 0;
+    let sessionsCompleted = 0;
+    let sessionsUpcoming = 0;
+    const recent = [];
+
+    for (const b of bookings) {
+      if (b.status === 'completed' && b.payment?.status === 'succeeded') {
+        totalEarned += b.payment.amount;
+        sessionsCompleted++;
+      }
+      if (b.status === 'confirmed' && b.payment?.status === 'succeeded') {
+        pendingPayout += b.payment.amount;
+        sessionsUpcoming++;
+      }
+      if (b.payment) {
+        recent.push({
+          date: b.payment.createdAt,
+          student: b.student?.name || 'Unknown',
+          subject: b.subject,
+          amount: b.payment.amount,
+          status: b.status,
+        });
+      }
+    }
+
+    recent.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    res.json({
+      totalEarned,
+      pendingPayout,
+      sessionsCompleted,
+      sessionsUpcoming,
+      recent: recent.slice(0, 10)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // List my bookings (student or tutor)
 router.get('/', auth, loadUser, async (req, res) => {

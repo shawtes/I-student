@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import Availability from './Availability';
 import Requests from './Requests';
 import Profile from './Profile';
+import Earnings from './Earnings';
 
 function TutorDashboard() {
   const { user, logout } = useAuth();
@@ -18,6 +19,7 @@ function TutorDashboard() {
     { path: '/tutor', label: 'Home' },
     { path: '/tutor/requests', label: 'Requests' },
     { path: '/tutor/availability', label: 'Availability' },
+    { path: '/tutor/earnings', label: 'Earnings' },
     { path: '/tutor/profile', label: 'Profile' },
   ];
 
@@ -52,6 +54,7 @@ function TutorDashboard() {
           <Route path="/requests" element={<Requests />} />
           <Route path="/availability" element={<Availability />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/earnings" element={<Earnings />} />
         </Routes>
       </div>
     </div>
