@@ -32,6 +32,13 @@ function Dashboard() {
     catch { alert('Failed to delete user'); }
   };
 
+  const handleRoleChange = async (userId, newRole) => {
+    try {
+      await api.put(`/admin/users/${userId}/role`, { role: newRole });
+      loadUsers();
+    } catch { alert('Failed to update role'); }
+  };
+
   const handleLogout = () => { logout(); navigate('/login'); };
 
   const statCards = stats ? [
@@ -105,7 +112,19 @@ function Dashboard() {
                               <td style={{ fontWeight: 500 }}>{u.name}</td>
                               <td>{u.email}</td>
                               <td>
-                                <span className={`badge ${u.role === 'admin' ? 'badge-orange' : 'badge-green'}`}>{u.role}</span>
+                                {u._id === user._id ? (
+                                  <span className="badge badge-orange">{u.role}</span>
+                                ) : (
+                                  <select
+                                    value={u.role}
+                                    onChange={(e) => handleRoleChange(u._id, e.target.value)}
+                                    style={{ fontSize: '0.82rem', padding: '2px 6px', width: 'auto' }}
+                                  >
+                                    <option value="student">student</option>
+                                    <option value="tutor">tutor</option>
+                                    <option value="admin">admin</option>
+                                  </select>
+                                )}
                               </td>
                               <td>{new Date(u.createdAt).toLocaleDateString()}</td>
                               <td>

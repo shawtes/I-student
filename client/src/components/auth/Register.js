@@ -123,7 +123,7 @@ function Register() {
           <div className="form-group">
             <label>I am signing up as</label>
             <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-              {['student', 'tutor', 'admin'].map(r => (
+              {['student', 'tutor'].map(r => (
                 <label
                   key={r}
                   style={{

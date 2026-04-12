@@ -12,7 +12,8 @@ router.get('/me', auth, async (req, res) => {
     let user = await User.findOne({ cognitoId: req.user.cognitoId });
 
     if (!user) {
-      const allowed = ['student', 'tutor', 'admin'];
+      // Only student and tutor can self-register. Admin must be granted by an existing admin.
+      const allowed = ['student', 'tutor'];
       const requested = allowed.includes(req.query.role) ? req.query.role : null;
       user = new User({
         cognitoId: req.user.cognitoId,
