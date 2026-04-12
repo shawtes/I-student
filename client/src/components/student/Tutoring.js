@@ -155,8 +155,8 @@ function Tutoring() {
   return (
     <div style={{ display: 'flex', gap: '12px', minHeight: 'calc(100vh - 120px)' }}>
       {/* Left: File Explorer */}
-      <div style={{ width: '220px', flexShrink: 0 }}>
-        <div className="card" style={{ position: 'sticky', top: '80px', maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}>
+      <div style={{ width: '250px', flexShrink: 0 }}>
+        <div style={{ position: 'sticky', top: '80px', maxHeight: 'calc(100vh - 100px)', overflowY: 'auto', background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px' }}>
           <h3 style={{ margin: 0, fontSize: '0.95rem' }}>Files</h3>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '4px 0 10px' }}>
             Check files to use as reference
@@ -296,7 +296,7 @@ function Tutoring() {
 
       {/* Right: Chat History */}
       <div style={{ width: '220px', flexShrink: 0 }}>
-        <div className="card" style={{ position: 'sticky', top: '80px', maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}>
+        <div style={{ position: 'sticky', top: '80px', maxHeight: 'calc(100vh - 100px)', overflowY: 'auto', background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px' }}>
           <button className="btn btn-primary btn-sm" style={{ width: '100%', marginBottom: '10px' }} onClick={startNewChat}>
             + New Chat
           </button>
