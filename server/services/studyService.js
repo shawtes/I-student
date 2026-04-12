@@ -1,21 +1,11 @@
 const gemini = require('./geminiClient');
 const bedrock = require('./bedrockClient');
-const File = require('../models/File');
-const fs = require('fs');
+const { extractFromFiles } = require('./fileExtractor');
 
 class StudyService {
   async generateContent(type, title, fileIds, userId, topic) {
     try {
-      let context = '';
-      if (fileIds && fileIds.length > 0) {
-        const files = await File.find({ _id: { $in: fileIds }, userId });
-        for (const file of files) {
-          if (file.transcription?.text) context += '\n\n' + file.transcription.text;
-          else if (file.fileType === 'text/plain' && file.localPath) {
-            try { context += '\n\n' + fs.readFileSync(file.localPath, 'utf-8'); } catch {}
-          }
-        }
-      }
+      const context = await extractFromFiles(fileIds, userId);
 
       const prompt = this.getPrompt(type, topic, context);
       const system = 'You are an expert educational content creator.';
