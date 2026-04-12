@@ -135,7 +135,16 @@ function StudyTools() {
                 ))}
               </div>
               {selectedFiles.length > 0 && (
-                <p style={{ fontSize: '0.82rem', color: 'var(--accent)', marginTop: '4px' }}>{selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected</p>
+                <div style={{ marginTop: '8px', padding: '10px', background: 'var(--accent-light)', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent)', marginBottom: '4px' }}>
+                    {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected — AI will read these:
+                  </div>
+                  {files.filter(f => selectedFiles.includes(f._id)).map(f => (
+                    <div key={f._id} style={{ fontSize: '0.85rem', color: 'var(--accent)', padding: '2px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>&#x2713;</span> {f.originalName}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}

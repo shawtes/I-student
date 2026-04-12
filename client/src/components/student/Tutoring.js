@@ -201,10 +201,20 @@ function Tutoring() {
           )}
 
           {selectedFiles.length > 0 && (
-            <button className="btn btn-secondary btn-sm" style={{ marginTop: '8px', width: '100%' }}
-              onClick={() => setSelectedFiles([])}>
-              Clear selection ({selectedFiles.length})
-            </button>
+            <div style={{ marginTop: '8px', padding: '8px', background: 'var(--accent-light)', borderRadius: '6px' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--accent)', marginBottom: '4px' }}>
+                Using as reference:
+              </div>
+              {files.filter(f => selectedFiles.includes(f._id)).map(f => (
+                <div key={f._id} style={{ fontSize: '0.78rem', color: 'var(--accent)', padding: '1px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  &#x2713; {f.originalName}
+                </div>
+              ))}
+              <button className="btn btn-secondary btn-sm" style={{ marginTop: '6px', width: '100%', fontSize: '0.75rem' }}
+                onClick={() => setSelectedFiles([])}>
+                Clear
+              </button>
+            </div>
           )}
         </div>
       </div>
