@@ -196,13 +196,14 @@ async function seed() {
     durationMinutes: 60,
     status: 'confirmed',
   });
-  await Payment.create({
+  const p1 = await Payment.create({
     booking: b1._id,
     student: userDocs['demo-student-1']._id,
     amount: 28,
     method: 'card',
     status: 'succeeded'
   });
+  b1.payment = p1._id; await b1.save();
 
   const inTwoDays = new Date();
   inTwoDays.setDate(inTwoDays.getDate() + 2);
@@ -227,13 +228,48 @@ async function seed() {
     durationMinutes: 90,
     status: 'completed',
   });
-  await Payment.create({
+  const p3 = await Payment.create({
     booking: b3._id,
     student: userDocs['demo-student-3']._id,
     amount: 48,
     method: 'card',
     status: 'succeeded'
   });
+  b3.payment = p3._id; await b3.save();
+
+  // Add more completed sessions across tutors for richer earnings demo
+  const pastDates = [3, 8, 12, 17, 22].map(days => {
+    const d = new Date(); d.setDate(d.getDate() - days); d.setHours(10 + (days % 6), 0, 0, 0); return d;
+  });
+  const extraSessions = [
+    { studentIdx: 1, tutorIdx: 0, subject: 'CSC 1302', amount: 28 },
+    { studentIdx: 2, tutorIdx: 0, subject: 'CSC 1301', amount: 28 },
+    { studentIdx: 3, tutorIdx: 4, subject: 'ECON 2105', amount: 26 },
+    { studentIdx: 4, tutorIdx: 5, subject: 'ENGL 1102', amount: 22 },
+    { studentIdx: 0, tutorIdx: 0, subject: 'CSC 1301', amount: 28 },
+  ];
+  for (let i = 0; i < extraSessions.length; i++) {
+    const s = extraSessions[i];
+    const sKey = 'demo-student-' + (s.studentIdx + 1);
+    const tKey = 'demo-tutor-' + (s.tutorIdx + 1);
+    const booking = await Booking.create({
+      student: userDocs[sKey]._id,
+      tutor: userDocs[tKey]._id,
+      subject: s.subject,
+      startTime: pastDates[i],
+      durationMinutes: 60,
+      status: 'completed',
+    });
+    const payment = await Payment.create({
+      booking: booking._id,
+      student: userDocs[sKey]._id,
+      amount: s.amount,
+      method: 'card',
+      status: 'succeeded'
+    });
+    booking.payment = payment._id;
+    await booking.save();
+  }
 
   // Forum posts + replies
   console.log('Seeding forum...');
