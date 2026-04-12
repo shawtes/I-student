@@ -120,7 +120,7 @@ function StudyTools() {
 
           {files.length > 0 && (
             <div className="form-group">
-              <label>Source files (optional — AI reads these to generate content)</label>
+              <label>Source files (optional)</label>
               <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '8px' }}>
                 {Object.entries(grouped).sort().map(([folder, folderFiles]) => (
                   <div key={folder} style={{ marginBottom: '6px' }}>
@@ -137,11 +137,11 @@ function StudyTools() {
               {selectedFiles.length > 0 && (
                 <div style={{ marginTop: '8px', padding: '10px', background: 'var(--accent-light)', borderRadius: '8px' }}>
                   <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent)', marginBottom: '4px' }}>
-                    {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected — AI will read these:
+                    {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected:
                   </div>
                   {files.filter(f => selectedFiles.includes(f._id)).map(f => (
                     <div key={f._id} style={{ fontSize: '0.85rem', color: 'var(--accent)', padding: '2px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>&#x2713;</span> {f.originalName}
+                      - {f.originalName}
                     </div>
                   ))}
                 </div>
@@ -295,7 +295,7 @@ function FlashcardViewer({ data }) {
         background: flipped ? 'var(--accent-light)' : 'var(--bg)'
       }}>
         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-          {flipped ? 'ANSWER' : 'QUESTION'} — Click to flip
+          {flipped ? 'ANSWER' : 'QUESTION'} - tap to flip
         </div>
         <div style={{ fontSize: '1.15rem', lineHeight: 1.5 }}>
           {flipped ? (card.back || card.answer) : (card.front || card.question)}

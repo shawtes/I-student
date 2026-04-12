@@ -32,14 +32,14 @@ function DevLogin() {
         <div style={{ marginTop: '16px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
           <strong>Pages you can visit after student login:</strong>
           <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
-            <li>/student — home</li>
-            <li>/student/grades — grade calculator (no backend)</li>
-            <li>/student/find-tutor — search tutors</li>
-            <li>/student/bookings — my bookings</li>
-            <li>/student/flashcards — AI flashcards</li>
-            <li>/student/forum — discussion</li>
-            <li>/student/progress — progress tracking</li>
-            <li>/student/help — help desk</li>
+            <li>/student - home</li>
+            <li>/student/grades - grade calculator</li>
+            <li>/student/find-tutor - search tutors</li>
+            <li>/student/bookings - my bookings</li>
+            <li>/student/flashcards - flashcards</li>
+            <li>/student/forum - discussion</li>
+            <li>/student/progress - progress tracking</li>
+            <li>/student/help - help desk</li>
           </ul>
         </div>
       </div>

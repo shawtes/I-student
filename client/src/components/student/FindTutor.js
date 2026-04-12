@@ -115,7 +115,7 @@ function FindTutor() {
                   </p>
                   {t.hourlyRate != null && <p style={{ fontSize: '0.9rem' }}>${t.hourlyRate}/hr</p>}
                   {t.ratingCount > 0 && (
-                    <p style={{ fontSize: '0.85rem' }}>★ {t.ratingAverage.toFixed(1)} ({t.ratingCount})</p>
+                    <p style={{ fontSize: '0.85rem' }}>{t.ratingAverage.toFixed(1)} ({t.ratingCount})</p>
                   )}
                   {t.bio && <p style={{ fontSize: '0.85rem', marginTop: '6px' }}>{t.bio}</p>}
                   <button className="btn btn-primary btn-sm" style={{ marginTop: '10px' }} onClick={() => requestBooking(t._id)}>

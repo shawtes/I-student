@@ -83,7 +83,7 @@ function Dashboard() {
               userCourses.map(f => (
                 <Link key={f} to={`/student/files?folder=${encodeURIComponent(f)}`}
                   style={{ ...S.courseItem, color: location.search.includes(f) ? 'var(--accent)' : 'var(--text-secondary)' }}>
-                  <span style={S.courseIcon}>&#x1F4C1;</span>
+                  <span style={S.courseIcon}>/</span>
                   <span style={S.courseLabel}>{f}</span>
                 </Link>
               ))
@@ -93,23 +93,23 @@ function Dashboard() {
 
             {/* Study tools */}
             <div style={{ ...S.sectionHeader, padding: '8px 10px 4px' }}>Study tools</div>
-            <NavItem to="/student/flashcards" label="Flashcards" icon="&#x1F4C7;" active={isActive('/student/flashcards')} color="var(--accent)" />
-            <NavItem to="/student/study" label="Study Guides" icon="&#x1F4D6;" active={isActive('/student/study')} color="var(--purple)" />
-            <NavItem to="/student/tutoring" label="AI Tutor" icon="&#x1F916;" active={isActive('/student/tutoring')} color="var(--green)" />
-            <NavItem to="/student/grades" label="Grade Calculator" icon="&#x1F4CA;" active={isActive('/student/grades')} color="var(--orange)" />
+            <NavItem to="/student/flashcards" label="Flashcards" icon="Fc" active={isActive('/student/flashcards')} color="var(--accent)" />
+            <NavItem to="/student/study" label="Study Guides" icon="Sg" active={isActive('/student/study')} color="var(--purple)" />
+            <NavItem to="/student/tutoring" label="AI Tutor" icon="Ai" active={isActive('/student/tutoring')} color="var(--green)" />
+            <NavItem to="/student/grades" label="Grade Calculator" icon="Gc" active={isActive('/student/grades')} color="var(--orange)" />
 
             <div style={S.divider} />
 
             {/* Tutoring */}
             <div style={{ ...S.sectionHeader, padding: '8px 10px 4px' }}>Tutoring</div>
-            <NavItem to="/student/find-tutor" label="Find a Tutor" icon="&#x1F50D;" active={isActive('/student/find-tutor')} />
-            <NavItem to="/student/bookings" label="My Bookings" icon="&#x1F4C5;" active={isActive('/student/bookings')} />
-            <NavItem to="/student/schedule" label="Schedule" icon="&#x1F552;" active={isActive('/student/schedule')} />
-            <NavItem to="/student/progress" label="Progress" icon="&#x1F4C8;" active={isActive('/student/progress')} />
+            <NavItem to="/student/find-tutor" label="Find a Tutor" icon="Ft" active={isActive('/student/find-tutor')} />
+            <NavItem to="/student/bookings" label="My Bookings" icon="Bk" active={isActive('/student/bookings')} />
+            <NavItem to="/student/schedule" label="Schedule" icon="Sc" active={isActive('/student/schedule')} />
+            <NavItem to="/student/progress" label="Progress" icon="Pr" active={isActive('/student/progress')} />
 
             <div style={S.divider} />
 
-            <NavItem to="/student/help" label="Help Desk" icon="&#x2753;" active={isActive('/student/help')} />
+            <NavItem to="/student/help" label="Help Desk" icon="Hd" active={isActive('/student/help')} />
 
             {/* User + logout */}
             <div style={S.userSection}>
@@ -118,7 +118,7 @@ function Dashboard() {
                 <div style={S.userName}>{user?.name || 'Student'}</div>
                 <div style={S.userEmail}>{user?.email}</div>
               </div>
-              <button onClick={handleLogout} style={S.logoutBtn} title="Log out">&#x2192;</button>
+              <button onClick={handleLogout} style={S.logoutBtn} title="Log out">Out</button>
             </div>
           </>
         )}
@@ -172,12 +172,12 @@ function NavItem({ to, label, icon, active, color }) {
 
 function DashboardHome() {
   const features = [
-    { title: 'AI Tutor', desc: 'Ask questions grounded in your notes and readings.', link: '/student/tutoring', color: 'var(--green-light)', textColor: 'var(--green)', icon: '&#x1F916;' },
-    { title: 'Flashcards', desc: 'Generate flashcards from your study materials with AI.', link: '/student/flashcards', color: 'var(--accent-light)', textColor: 'var(--accent)', icon: '&#x1F4C7;' },
-    { title: 'Study Guides', desc: 'Auto-generate quizzes, guides, and practice tests.', link: '/student/study', color: 'var(--purple-light)', textColor: 'var(--purple)', icon: '&#x1F4D6;' },
-    { title: 'My Files', desc: 'Upload and organize materials by course.', link: '/student/files', color: 'var(--orange-light)', textColor: 'var(--orange)', icon: '&#x1F4C1;' },
-    { title: 'Find a Tutor', desc: 'Search GSU tutors by subject and availability.', link: '/student/find-tutor', color: 'var(--green-light)', textColor: 'var(--green)', icon: '&#x1F50D;' },
-    { title: 'Study Groups', desc: 'Create or join groups to study together.', link: '/student/partners', color: 'var(--accent-light)', textColor: 'var(--accent)', icon: '&#x1F465;' },
+    { title: 'AI Tutor', desc: 'Ask questions grounded in your notes and readings.', link: '/student/tutoring', color: 'var(--green-light)', textColor: 'var(--green)', initials: 'Ai' },
+    { title: 'Flashcards', desc: 'Generate flashcards from your study materials.', link: '/student/flashcards', color: 'var(--accent-light)', textColor: 'var(--accent)', initials: 'Fc' },
+    { title: 'Study Guides', desc: 'Generate quizzes, guides, and practice tests.', link: '/student/study', color: 'var(--purple-light)', textColor: 'var(--purple)', initials: 'Sg' },
+    { title: 'My Files', desc: 'Upload and organize materials by course.', link: '/student/files', color: 'var(--orange-light)', textColor: 'var(--orange)', initials: 'Fi' },
+    { title: 'Find a Tutor', desc: 'Search GSU tutors by subject and availability.', link: '/student/find-tutor', color: 'var(--green-light)', textColor: 'var(--green)', initials: 'Ft' },
+    { title: 'Study Groups', desc: 'Create or join groups to study together.', link: '/student/partners', color: 'var(--accent-light)', textColor: 'var(--accent)', initials: 'Gr' },
   ];
 
   return (
@@ -190,9 +190,7 @@ function DashboardHome() {
         {features.map(f => (
           <Link key={f.title} to={f.link} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="feature-card">
-              <div className="feature-icon" style={{ background: f.color, color: f.textColor }}>
-                <span dangerouslySetInnerHTML={{ __html: f.icon }} />
-              </div>
+              <div className="feature-icon" style={{ background: f.color, color: f.textColor }}>{f.initials}</div>
               <h3>{f.title}</h3>
               <p>{f.desc}</p>
               <span style={{ fontSize: '0.825rem', fontWeight: 550, color: 'var(--accent)' }}>Open &rarr;</span>

@@ -207,7 +207,7 @@ function Tutoring() {
               </div>
               {files.filter(f => selectedFiles.includes(f._id)).map(f => (
                 <div key={f._id} style={{ fontSize: '0.78rem', color: 'var(--accent)', padding: '1px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  &#x2713; {f.originalName}
+                  - {f.originalName}
                 </div>
               ))}
               <button className="btn btn-secondary btn-sm" style={{ marginTop: '6px', width: '100%', fontSize: '0.75rem' }}

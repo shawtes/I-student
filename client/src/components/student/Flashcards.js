@@ -114,11 +114,11 @@ function Flashcards() {
                 {selectedFiles.length > 0 && (
                   <div style={{ marginTop: '8px', padding: '10px', background: 'var(--accent-light)', borderRadius: '8px' }}>
                     <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent)', marginBottom: '4px' }}>
-                      {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected — AI will read these:
+                      {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected:
                     </div>
                     {files.filter(f => selectedFiles.includes(f._id)).map(f => (
                       <div key={f._id} style={{ fontSize: '0.85rem', color: 'var(--accent)', padding: '2px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>&#x2713;</span> {f.originalName}
+                        - {f.originalName}
                       </div>
                     ))}
                   </div>

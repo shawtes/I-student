@@ -14,8 +14,8 @@ const STATUS_META = {
 };
 
 const CAT_ICONS = {
-  'Bug Report': '🐛', 'Account Issue': '👤', 'Billing / Payment': '💳',
-  'Tutoring Issue': '📚', 'General Question': '❓', 'Feature Request': '✨',
+  'Bug Report': '[B]', 'Account Issue': '[A]', 'Billing / Payment': '[P]',
+  'Tutoring Issue': '[T]', 'General Question': '[Q]', 'Feature Request': '[F]',
 };
 
 function timeAgo(dateStr) {
