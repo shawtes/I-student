@@ -99,6 +99,21 @@ router.post('/generate', auth, loadUser, aiLimiter, async (req, res) => {
   }
 });
 
+// Delete entire deck (all cards with the given deck name)
+router.delete('/decks/:name', auth, loadUser, async (req, res) => {
+  try {
+    const deckName = decodeURIComponent(req.params.name);
+    const result = await Flashcard.deleteMany({
+      owner: req.dbUser._id,
+      deck: deckName
+    });
+    res.json({ message: 'Deck deleted', deleted: result.deletedCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Update
 router.put('/:id', auth, loadUser, async (req, res) => {
   try {

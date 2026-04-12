@@ -32,19 +32,37 @@ function Flashcards() {
   const generate = async (e) => {
     e.preventDefault();
     if (!newDeck.trim()) return;
+
+    // Warn if deck name already exists
+    if (decks.some(d => d.deck === newDeck.trim())) {
+      if (!window.confirm(`A deck named "${newDeck.trim()}" already exists. Continue and add cards to it?`)) {
+        return;
+      }
+    }
+
     setGenerating(true);
     setAlert({ text: '', type: '' });
     try {
-      const body = { deck: newDeck, count: 10 };
+      const body = { deck: newDeck.trim(), count: 10 };
       if (sourceMode !== 'files') body.text = text;
       if (sourceMode !== 'text') body.fileIds = selectedFiles;
-      await api.post('/flashcards/generate', body);
-      setAlert({ text: 'Flashcards generated', type: 'success' });
-      setText(''); setSelectedFiles([]);
-      loadDecks();
-      openDeck(newDeck);
+      const res = await api.post('/flashcards/generate', body);
+      const createdCount = Array.isArray(res.data) ? res.data.length : 0;
+
+      if (createdCount === 0) {
+        setAlert({ text: 'No cards could be generated. Try more detailed source material.', type: 'error' });
+        return;
+      }
+
+      setAlert({ text: `Created ${createdCount} flashcard${createdCount !== 1 ? 's' : ''}`, type: 'success' });
+      const justCreated = newDeck.trim();
+      setNewDeck('');
+      setText('');
+      setSelectedFiles([]);
+      await loadDecks();
+      openDeck(justCreated);
     } catch (err) {
-      setAlert({ text: err.response?.data?.message || 'Generation failed', type: 'error' });
+      setAlert({ text: err.response?.data?.message || err.message || 'Generation failed', type: 'error' });
     } finally { setGenerating(false); }
   };
   const deleteCard = async (id) => {
@@ -153,12 +171,30 @@ function Flashcards() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '14px' }}>
           {decks.map(d => (
-            <div key={d.deck} onClick={() => openDeck(d.deck)} style={S.deckCard}>
-              <h3 style={{ margin: 0, fontSize: '1.05rem' }}>{d.deck}</h3>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                <span>{d.count} card{d.count !== 1 ? 's' : ''}</span>
-                {d.due > 0 && <span style={{ color: 'var(--orange)' }}>{d.due} due</span>}
+            <div key={d.deck} style={{ ...S.deckCard, position: 'relative' }}>
+              <div onClick={() => openDeck(d.deck)} style={{ cursor: 'pointer' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', paddingRight: '24px' }}>{d.deck}</h3>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  <span>{d.count} card{d.count !== 1 ? 's' : ''}</span>
+                  {d.due > 0 && <span style={{ color: 'var(--orange)' }}>{d.due} due</span>}
+                </div>
               </div>
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (!window.confirm(`Delete the entire "${d.deck}" deck?`)) return;
+                  try {
+                    await api.delete('/flashcards/decks/' + encodeURIComponent(d.deck));
+                    loadDecks();
+                  } catch {}
+                }}
+                title="Delete deck"
+                style={{
+                  position: 'absolute', top: '12px', right: '12px',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-muted)', fontSize: '1rem', padding: '2px 6px',
+                }}
+              >x</button>
             </div>
           ))}
         </div>
