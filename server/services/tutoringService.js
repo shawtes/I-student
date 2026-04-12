@@ -27,13 +27,9 @@ class TutoringService {
         ? `Context from my study materials:\n${context.slice(0, 10000)}\n\nQuestion: ${question}`
         : `Question: ${question}`;
 
-      // 1. Try Gemini Pro (smarter, free)
-      const gAnswer = await gemini.invoke({ prompt, system: SYSTEM_PROMPT, model: 'pro' });
+      // 1. Try Gemini Flash (free, generous quota)
+      const gAnswer = await gemini.invoke({ prompt, system: SYSTEM_PROMPT, model: 'flash' });
       if (gAnswer) return gAnswer;
-
-      // 2. Try Gemini Flash (faster, free)
-      const gFlash = await gemini.invoke({ prompt, system: SYSTEM_PROMPT, model: 'flash' });
-      if (gFlash) return gFlash;
 
       // 3. Try Bedrock Sonnet
       const bAnswer = await bedrock.invoke({
