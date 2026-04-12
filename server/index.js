@@ -35,7 +35,7 @@ app.use('/api/availability', require('./routes/availability'));
 app.use('/api/bookings', require('./routes/bookings'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/progress', require('./routes/progress'));
-app.use('/api/tickets', require('./routes/tickets'));
+app.use('/api/helpdesk', require('./routes/helpdesk'));
 app.use('/api/calendar', require('./routes/calendar'));
 app.use('/api/forum', require('./routes/forum'));
 app.use('/api/flashcards', require('./routes/flashcards'));
