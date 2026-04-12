@@ -1,3 +1,4 @@
+const gemini = require('./geminiClient');
 const bedrock = require('./bedrockClient');
 const File = require('../models/File');
 const fs = require('fs');
@@ -9,31 +10,38 @@ class StudyService {
       if (fileIds && fileIds.length > 0) {
         const files = await File.find({ _id: { $in: fileIds }, userId });
         for (const file of files) {
-          if (file.transcription?.text) {
-            context += '\n\n' + file.transcription.text;
-          } else if (file.fileType === 'text/plain' && file.localPath) {
+          if (file.transcription?.text) context += '\n\n' + file.transcription.text;
+          else if (file.fileType === 'text/plain' && file.localPath) {
             try { context += '\n\n' + fs.readFileSync(file.localPath, 'utf-8'); } catch {}
           }
         }
       }
 
       const prompt = this.getPrompt(type, topic, context);
+      const system = 'You are an expert educational content creator.';
 
-      // Try Bedrock first
+      // Structured content (quiz/flashcard) needs JSON
       if (type === 'quiz' || type === 'flashcard') {
-        const result = await bedrock.invokeJSON({
+        const gResult = await gemini.invokeJSON({ prompt, system: system + ' Always respond with valid JSON.' });
+        if (gResult) return gResult;
+
+        const bResult = await bedrock.invokeJSON({
           messages: [{ role: 'user', content: prompt }],
-          system: 'You are an expert educational content creator. Always respond with valid JSON.',
+          system: system + ' Always respond with valid JSON.',
           model: 'haiku',
         });
-        if (result) return result;
+        if (bResult) return bResult;
       } else {
-        const text = await bedrock.invoke({
+        // Study guide — plain text/markdown
+        const gText = await gemini.invoke({ prompt, system: system + ' Use markdown formatting.' });
+        if (gText) return { text: gText };
+
+        const bText = await bedrock.invoke({
           messages: [{ role: 'user', content: prompt }],
-          system: 'You are an expert educational content creator. Use markdown formatting.',
+          system: system + ' Use markdown formatting.',
           model: 'haiku',
         });
-        if (text) return { text };
+        if (bText) return { text: bText };
       }
 
       // OpenAI fallback
@@ -41,7 +49,6 @@ class StudyService {
         return await this.openAIFallback(type, prompt);
       }
 
-      // Mock fallback
       return this.getMock(type, topic);
     } catch (err) {
       console.error('Content generation error:', err);
@@ -93,11 +100,11 @@ class StudyService {
   getMock(type, topic) {
     switch (type) {
       case 'quiz':
-        return [{ question: `Sample question about ${topic || 'the topic'}?`, options: ['Option A', 'Option B', 'Option C', 'Option D'], correctAnswer: 0, explanation: 'Configure Bedrock or OpenAI for real content.' }];
+        return [{ question: `Sample question about ${topic || 'the topic'}?`, options: ['Option A', 'Option B', 'Option C', 'Option D'], correctAnswer: 0, explanation: 'Configure Gemini, Bedrock, or OpenAI for real content.' }];
       case 'flashcard':
-        return [{ front: `What is ${topic || 'the topic'}?`, back: 'Configure Bedrock or OpenAI for real content.' }];
+        return [{ front: `What is ${topic || 'the topic'}?`, back: 'Configure an AI API key for real content.' }];
       case 'guide':
-        return { text: `# Study Guide: ${topic || 'Topic'}\n\nConfigure Bedrock or OpenAI API for real content generation.` };
+        return { text: `# Study Guide: ${topic || 'Topic'}\n\nConfigure an AI API key for real content generation.` };
       default:
         return { text: 'Mock content' };
     }

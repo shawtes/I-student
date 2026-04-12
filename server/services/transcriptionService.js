@@ -1,12 +1,11 @@
+const gemini = require('./geminiClient');
 const bedrock = require('./bedrockClient');
 const fs = require('fs');
 
 class TranscriptionService {
-  // Audio transcription still uses OpenAI Whisper (Bedrock doesn't have STT).
-  // After transcription, we use Bedrock to generate a summary + key points.
+  // Audio transcription uses OpenAI Whisper (no free alternative for STT yet).
   async transcribe(fileId, filePath) {
     try {
-      // Whisper for speech-to-text
       if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key') {
         const { OpenAI } = require('openai');
         const ai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -18,7 +17,6 @@ class TranscriptionService {
         });
         return result.text;
       }
-
       return 'Transcription requires an OpenAI API key (Whisper). Set OPENAI_API_KEY in your environment.';
     } catch (err) {
       console.error('Transcription error:', err);
@@ -26,12 +24,9 @@ class TranscriptionService {
     }
   }
 
-  // Post-transcription: extract key points and a summary using Bedrock
+  // Summarize a transcript using Gemini (free) or Bedrock
   async summarize(transcriptionText) {
-    const result = await bedrock.invokeJSON({
-      messages: [{
-        role: 'user',
-        content: `Summarize this lecture transcript. Extract:
+    const prompt = `Summarize this lecture transcript. Extract:
 1. A brief summary (2-3 sentences)
 2. Key points (bullet list)
 3. Glossary terms (term + definition)
@@ -40,14 +35,22 @@ class TranscriptionService {
 Return JSON: {"summary":"...","keyPoints":["..."],"glossary":[{"term":"...","definition":"..."}],"actionItems":["..."]}
 
 Transcript:
-${transcriptionText.slice(0, 12000)}`
-      }],
-      system: 'You extract structured notes from lecture transcripts. Respond with valid JSON only.',
+${transcriptionText.slice(0, 12000)}`;
+
+    const system = 'You extract structured notes from lecture transcripts. Respond with valid JSON only.';
+
+    const gResult = await gemini.invokeJSON({ prompt, system });
+    if (gResult) return gResult;
+
+    const bResult = await bedrock.invokeJSON({
+      messages: [{ role: 'user', content: prompt }],
+      system,
       model: 'haiku',
     });
+    if (bResult) return bResult;
 
-    return result || {
-      summary: 'Summary not available (AI service unreachable)',
+    return {
+      summary: 'Summary not available (no AI service reachable)',
       keyPoints: [],
       glossary: [],
       actionItems: []

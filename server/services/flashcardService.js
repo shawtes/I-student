@@ -1,7 +1,7 @@
+const gemini = require('./geminiClient');
 const bedrock = require('./bedrockClient');
 
 async function generate({ text, topic, count = 10 }) {
-  // Try Bedrock first
   const prompt = [
     `Create exactly ${count} flashcards from the following text.`,
     topic ? `The topic is: ${topic}.` : '',
@@ -11,18 +11,25 @@ async function generate({ text, topic, count = 10 }) {
     text.slice(0, 8000)
   ].join('\n');
 
-  const result = await bedrock.invokeJSON({
-    messages: [{ role: 'user', content: prompt }],
-    system: 'You are a study assistant that creates flashcards from academic material. Always respond with valid JSON.',
-    model: 'haiku',
-    maxTokens: 4096,
-  });
+  const system = 'You are a study assistant that creates flashcards from academic material. Always respond with valid JSON.';
 
-  if (result?.cards && Array.isArray(result.cards)) {
-    return result.cards.filter(c => c.question && c.answer).slice(0, count);
+  // 1. Try Gemini (free)
+  const gResult = await gemini.invokeJSON({ prompt, system });
+  if (gResult?.cards && Array.isArray(gResult.cards)) {
+    return gResult.cards.filter(c => c.question && c.answer).slice(0, count);
   }
 
-  // Try OpenAI as second fallback
+  // 2. Try Bedrock
+  const bResult = await bedrock.invokeJSON({
+    messages: [{ role: 'user', content: prompt }],
+    system,
+    model: 'haiku',
+  });
+  if (bResult?.cards && Array.isArray(bResult.cards)) {
+    return bResult.cards.filter(c => c.question && c.answer).slice(0, count);
+  }
+
+  // 3. Try OpenAI
   try {
     if (process.env.OPENAI_API_KEY) {
       const OpenAI = require('openai');
@@ -41,7 +48,7 @@ async function generate({ text, topic, count = 10 }) {
     console.error('OpenAI fallback failed:', e.message);
   }
 
-  // Final fallback: naive sentence splitter
+  // 4. Naive fallback
   return naiveCards(text, count);
 }
 

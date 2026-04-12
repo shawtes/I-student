@@ -1,3 +1,4 @@
+const gemini = require('./geminiClient');
 const bedrock = require('./bedrockClient');
 const File = require('../models/File');
 const fs = require('fs');
@@ -22,20 +23,28 @@ class TutoringService {
         }
       }
 
-      const userMsg = context
+      const prompt = context
         ? `Context from my study materials:\n${context.slice(0, 10000)}\n\nQuestion: ${question}`
         : `Question: ${question}`;
 
-      // Try Bedrock Sonnet (smarter model for tutoring)
-      const answer = await bedrock.invoke({
-        messages: [{ role: 'user', content: userMsg }],
+      // 1. Try Gemini Pro (smarter, free)
+      const gAnswer = await gemini.invoke({ prompt, system: SYSTEM_PROMPT, model: 'pro' });
+      if (gAnswer) return gAnswer;
+
+      // 2. Try Gemini Flash (faster, free)
+      const gFlash = await gemini.invoke({ prompt, system: SYSTEM_PROMPT, model: 'flash' });
+      if (gFlash) return gFlash;
+
+      // 3. Try Bedrock Sonnet
+      const bAnswer = await bedrock.invoke({
+        messages: [{ role: 'user', content: prompt }],
         system: SYSTEM_PROMPT,
         model: 'sonnet',
         maxTokens: 2000,
       });
-      if (answer) return answer;
+      if (bAnswer) return bAnswer;
 
-      // OpenAI fallback
+      // 4. OpenAI fallback
       if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key') {
         const { OpenAI } = require('openai');
         const ai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -43,14 +52,14 @@ class TutoringService {
           model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: userMsg }
+            { role: 'user', content: prompt }
           ],
           max_tokens: 1000
         });
         return res.choices[0].message.content;
       }
 
-      return 'AI tutoring is not available right now. Please check that Bedrock model access is enabled in your AWS account, or set an OpenAI API key.';
+      return 'AI tutoring is not available right now. Please check that a Gemini API key is set (GEMINI_API_KEY).';
     } catch (err) {
       console.error('Tutoring error:', err);
       throw new Error('Failed to generate answer');
