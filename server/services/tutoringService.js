@@ -1,76 +1,60 @@
-const { OpenAI } = require('openai');
+const bedrock = require('./bedrockClient');
 const File = require('../models/File');
 const fs = require('fs');
 
-let openai;
-function getOpenAI() {
-  if (!openai) {
-    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  }
-  return openai;
-}
+const SYSTEM_PROMPT = `You are an intelligent AI tutor helping a student at Georgia State University.
+Use the provided context from their study materials to answer questions accurately.
+If the context doesn't contain relevant information, use your general knowledge but say so.
+Give clear, concise explanations. Use examples when helpful.`;
 
 class TutoringService {
   async answerQuestion(question, fileIds, userId) {
     try {
-      // Check if OpenAI API key is configured
-      if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your-openai-api-key') {
-        console.warn('OpenAI API key not configured, returning mock answer');
-        return 'This is a mock answer. Please configure OPENAI_API_KEY in your .env file to use actual AI tutoring.';
-      }
-
-      // Get context from files
       let context = '';
-      if (fileIds.length > 0) {
-        const files = await File.find({ 
-          _id: { $in: fileIds },
-          userId: userId
-        });
-
+      if (fileIds && fileIds.length > 0) {
+        const files = await File.find({ _id: { $in: fileIds }, userId });
         for (const file of files) {
-          // Add transcription or file content to context
-          if (file.transcription && file.transcription.text) {
+          if (file.transcription?.text) {
             context += `\n\nFrom ${file.originalName}:\n${file.transcription.text}`;
           } else if (file.fileType === 'text/plain' && file.localPath) {
-            try {
-              const content = fs.readFileSync(file.localPath, 'utf-8');
-              context += `\n\nFrom ${file.originalName}:\n${content}`;
-            } catch (error) {
-              console.error(`Error reading file ${file.originalName}:`, error);
-            }
+            try { context += `\n\nFrom ${file.originalName}:\n${fs.readFileSync(file.localPath, 'utf-8')}`; } catch {}
           }
         }
       }
 
-      // Generate answer using GPT
-      const systemPrompt = `You are an intelligent AI tutor helping a student. Use the provided context from their study materials to answer questions accurately and helpfully. If the context doesn't contain relevant information, use your general knowledge to provide a helpful answer.`;
-
-      const userPrompt = context 
-        ? `Context from study materials:\n${context}\n\nQuestion: ${question}`
+      const userMsg = context
+        ? `Context from my study materials:\n${context.slice(0, 10000)}\n\nQuestion: ${question}`
         : `Question: ${question}`;
 
-      const completion = await getOpenAI().chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 1000
+      // Try Bedrock Sonnet (smarter model for tutoring)
+      const answer = await bedrock.invoke({
+        messages: [{ role: 'user', content: userMsg }],
+        system: SYSTEM_PROMPT,
+        model: 'sonnet',
+        maxTokens: 2000,
       });
+      if (answer) return answer;
 
-      return completion.choices[0].message.content;
-    } catch (error) {
-      console.error('Tutoring error:', error);
+      // OpenAI fallback
+      if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key') {
+        const { OpenAI } = require('openai');
+        const ai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        const res = await ai.chat.completions.create({
+          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: userMsg }
+          ],
+          max_tokens: 1000
+        });
+        return res.choices[0].message.content;
+      }
+
+      return 'AI tutoring is not available right now. Please check that Bedrock model access is enabled in your AWS account, or set an OpenAI API key.';
+    } catch (err) {
+      console.error('Tutoring error:', err);
       throw new Error('Failed to generate answer');
     }
-  }
-
-  // This would integrate with a vector database for true RAG
-  async indexDocument(fileId, content) {
-    // Placeholder for vector database integration (e.g., Pinecone)
-    // This would embed the content and store it in a vector database
-    console.log(`Indexing document ${fileId} for RAG`);
   }
 }
 
