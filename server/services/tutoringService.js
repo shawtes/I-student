@@ -3,10 +3,13 @@ const bedrock = require('./bedrockClient');
 const { extractFromFiles } = require('./fileExtractor');
 
 const SYSTEM_PROMPT = `You are an intelligent AI tutor helping a student at Georgia State University.
-Use the provided context from their study materials to answer questions accurately.
-When referencing the material, cite which document the info came from.
-If the context doesn't contain relevant information, use your general knowledge but say so.
-Give clear, concise explanations. Use examples when helpful.`;
+
+IMPORTANT RULES:
+- ONLY reference documents that appear in the "Context from my study materials" section below.
+- DO NOT make up or hallucinate file names, page numbers, or citations.
+- If context is provided, base your answer on it and reference it by the exact filename shown (e.g. "From sineshawtesfaye_Group10_Sprint3.pdf").
+- If no context is provided or the context doesn't answer the question, say "Based on my general knowledge:" and then answer. Do NOT pretend to cite a document.
+- Give clear, concise explanations with examples when helpful.`;
 
 class TutoringService {
   async answerQuestion(question, fileIds, userId) {
@@ -14,9 +17,15 @@ class TutoringService {
       // Pull actual text from the user's files (S3 + PDF parsing)
       const context = await extractFromFiles(fileIds, userId);
 
-      const prompt = context
-        ? `Context from my study materials:\n${context.slice(0, 12000)}\n\nQuestion: ${question}`
-        : `Question: ${question}`;
+      let prompt;
+      if (context && context.trim().length > 50) {
+        prompt = `Context from my study materials:\n${context.slice(0, 12000)}\n\nQuestion: ${question}`;
+      } else if (fileIds && fileIds.length > 0) {
+        // Files were selected but extraction failed
+        prompt = `Note: The student selected files but text extraction was not possible (the files may be scanned images or unsupported format). Answer the following question from general knowledge and clearly state you could not read the files.\n\nQuestion: ${question}`;
+      } else {
+        prompt = `No study materials were provided. Answer from general knowledge and clearly state that.\n\nQuestion: ${question}`;
+      }
 
       // 1. Try Gemini Flash (free, generous quota)
       const gAnswer = await gemini.invoke({ prompt, system: SYSTEM_PROMPT, model: 'flash' });

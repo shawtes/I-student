@@ -63,9 +63,13 @@ async function extractFromFiles(fileIds, userId) {
 
   let context = '';
   for (const file of files) {
+    console.log(`[fileExtractor] processing ${file.originalName} (type=${file.fileType}, s3Key=${file.s3Key})`);
     const text = await extractText(file);
     if (text) {
+      console.log(`[fileExtractor] extracted ${text.length} chars from ${file.originalName}`);
       context += `\n\n--- From ${file.originalName} ---\n${text}`;
+    } else {
+      console.warn(`[fileExtractor] no text extracted from ${file.originalName}`);
     }
   }
   return context;
