@@ -65,6 +65,17 @@ router.post('/upload', auth, uploadLimiter, upload.single('file'), async (req, r
   }
 });
 
+// Get distinct folders for this user's files
+router.get('/folders', auth, async (req, res) => {
+  try {
+    const folders = await File.distinct('folder', { userId: req.user.cognitoId });
+    res.json(folders.filter(Boolean).sort());
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get user files
 router.get('/', auth, async (req, res) => {
   try {
