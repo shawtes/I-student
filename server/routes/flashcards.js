@@ -59,15 +59,28 @@ router.post('/', auth, loadUser, async (req, res) => {
   }
 });
 
-// AI: generate cards from text or a file
+// AI: generate cards from text, files, or both
 router.post('/generate', auth, loadUser, aiLimiter, async (req, res) => {
   try {
-    const { deck, topic, text, count } = req.body;
-    if (!deck || !text) {
-      return res.status(400).json({ message: 'deck and text are required' });
+    const { deck, topic, text, fileIds, count } = req.body;
+    if (!deck) {
+      return res.status(400).json({ message: 'deck is required' });
     }
+
+    // Build source text from pasted text + extracted file contents
+    let sourceText = text || '';
+    if (fileIds && fileIds.length > 0) {
+      const { extractFromFiles } = require('../services/fileExtractor');
+      const fileText = await extractFromFiles(fileIds, req.user.cognitoId);
+      if (fileText) sourceText += '\n\n' + fileText;
+    }
+
+    if (!sourceText.trim()) {
+      return res.status(400).json({ message: 'Provide text or select files to generate from' });
+    }
+
     const cards = await flashcardService.generate({
-      text,
+      text: sourceText,
       topic,
       count: count || 10
     });
