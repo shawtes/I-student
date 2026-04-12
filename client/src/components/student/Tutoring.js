@@ -179,25 +179,16 @@ function Tutoring() {
                   <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{folderFiles.length}</span>
                 </div>
                 {expandedFolders[folder] !== false && folderFiles.map(f => (
-                  <label key={f._id} style={{
-                    display: 'flex', gap: '6px', alignItems: 'center',
-                    padding: '3px 0 3px 12px', fontSize: '0.78rem', cursor: 'pointer',
-                    minWidth: 0
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedFiles.includes(f._id)}
-                      onChange={() => toggleFile(f._id)}
-                      style={{ flexShrink: 0 }}
-                    />
-                    <span style={{
-                      flex: 1, minWidth: 0,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      color: selectedFiles.includes(f._id) ? 'var(--accent)' : 'var(--text)'
-                    }}>
-                      {f.originalName}
-                    </span>
-                  </label>
+                  <div key={f._id} style={{ padding: '2px 0 2px 12px', fontSize: '0.78rem' }}>
+                    <label style={{ cursor: 'pointer', display: 'block' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedFiles.includes(f._id)}
+                        onChange={() => toggleFile(f._id)}
+                      />
+                      {' '}{f.originalName}
+                    </label>
+                  </div>
                 ))}
               </div>
             ))
