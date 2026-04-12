@@ -28,6 +28,7 @@ const UserSchema = new mongoose.Schema({
   learningPrefs: [String],
   ratingAverage: { type: Number, default: 0 },
   ratingCount: { type: Number, default: 0 },
+  courses: [String],
   avatar: String,
   bio: String,
   major: String,

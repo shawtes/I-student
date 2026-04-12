@@ -2,18 +2,19 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
 import { GSU_COURSES } from '../../data/gsuCourses';
 
-const courseOptions = ['Unsorted', ...GSU_COURSES.map(c => c.code)];
+// Will be computed dynamically inside the component using userCourses
 
 function Files() {
   const [files, setFiles] = useState([]);
   const [folders, setFolders] = useState([]);
+  const [userCourses, setUserCourses] = useState([]);
   const [activeFolder, setActiveFolder] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
-  useEffect(() => { loadFiles(); loadFolders(); }, [activeFolder]);
+  useEffect(() => { loadFiles(); loadFolders(); loadUserCourses(); }, [activeFolder]);
 
   const loadFiles = async () => {
     try {
@@ -27,6 +28,13 @@ function Files() {
     try {
       const res = await api.get('/files/folders');
       setFolders(res.data);
+    } catch {}
+  };
+
+  const loadUserCourses = async () => {
+    try {
+      const res = await api.get('/auth/me');
+      setUserCourses(res.data.courses || []);
     } catch {}
   };
 
@@ -99,7 +107,13 @@ function Files() {
 
   const folderLabel = (f) => (!f || f === 'root') ? 'Unsorted' : f;
 
-  const allFolders = [...new Set(['All', ...folders.map(folderLabel)])];
+  // Merge user's enrolled courses + any folders that have files
+  const allFolders = [...new Set([
+    'All',
+    ...userCourses,
+    ...folders.map(folderLabel),
+    'Unsorted'
+  ])].filter(f => f !== 'root');
 
   return (
     <div>
@@ -177,7 +191,17 @@ function Files() {
                         onChange={(e) => moveFile(f._id, e.target.value)}
                         style={{ fontSize: '0.85rem', padding: '2px 6px', width: 'auto' }}
                       >
-                        {courseOptions.map(c => <option key={c}>{c}</option>)}
+                        <option>Unsorted</option>
+                        {userCourses.length > 0 && (
+                          <optgroup label="My classes">
+                            {userCourses.map(c => <option key={c}>{c}</option>)}
+                          </optgroup>
+                        )}
+                        <optgroup label="All GSU courses">
+                          {GSU_COURSES.filter(c => !userCourses.includes(c.code)).map(c => (
+                            <option key={c.code}>{c.code}</option>
+                          ))}
+                        </optgroup>
                       </select>
                     </td>
                     <td style={{ whiteSpace: 'nowrap' }}>{formatSize(f.fileSize)}</td>

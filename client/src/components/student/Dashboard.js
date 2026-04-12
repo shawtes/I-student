@@ -14,20 +14,21 @@ import Progress from './Progress';
 import HelpDesk from './HelpDesk';
 import Forum from './Forum';
 import Flashcards from './Flashcards';
+import MyClasses from './MyClasses';
 
 function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [folders, setFolders] = useState([]);
+  const [userCourses, setUserCourses] = useState([]);
 
-  useEffect(() => { loadFolders(); }, []);
+  useEffect(() => { loadCourses(); }, []);
 
-  const loadFolders = async () => {
+  const loadCourses = async () => {
     try {
-      const res = await api.get('/tutoring/folders');
-      setFolders(res.data.filter(f => f && f !== 'root'));
+      const res = await api.get('/auth/me');
+      setUserCourses(res.data.courses || []);
     } catch {}
   };
 
@@ -70,13 +71,16 @@ function Dashboard() {
             <div style={S.divider} />
 
             {/* Your courses */}
-            <div style={S.sectionHeader}>Your courses</div>
-            {folders.length === 0 ? (
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', padding: '0 10px' }}>
-                No courses yet. Move files to a course folder to see them here.
-              </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px 4px' }}>
+              <span style={S.sectionHeader}>Your courses</span>
+              <Link to="/student/classes" style={{ fontSize: '0.72rem', color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Edit</Link>
+            </div>
+            {userCourses.length === 0 ? (
+              <Link to="/student/classes" style={{ fontSize: '0.82rem', color: 'var(--accent)', padding: '4px 10px', textDecoration: 'none', display: 'block' }}>
+                + Set up your classes
+              </Link>
             ) : (
-              folders.map(f => (
+              userCourses.map(f => (
                 <Link key={f} to={`/student/files?folder=${encodeURIComponent(f)}`}
                   style={{ ...S.courseItem, color: location.search.includes(f) ? 'var(--accent)' : 'var(--text-secondary)' }}>
                   <span style={S.courseIcon}>&#x1F4C1;</span>
@@ -88,7 +92,7 @@ function Dashboard() {
             <div style={S.divider} />
 
             {/* Study tools */}
-            <div style={S.sectionHeader}>Study tools</div>
+            <div style={{ ...S.sectionHeader, padding: '8px 10px 4px' }}>Study tools</div>
             <NavItem to="/student/flashcards" label="Flashcards" icon="&#x1F4C7;" active={isActive('/student/flashcards')} color="var(--accent)" />
             <NavItem to="/student/study" label="Study Guides" icon="&#x1F4D6;" active={isActive('/student/study')} color="var(--purple)" />
             <NavItem to="/student/tutoring" label="AI Tutor" icon="&#x1F916;" active={isActive('/student/tutoring')} color="var(--green)" />
@@ -97,7 +101,7 @@ function Dashboard() {
             <div style={S.divider} />
 
             {/* Tutoring */}
-            <div style={S.sectionHeader}>Tutoring</div>
+            <div style={{ ...S.sectionHeader, padding: '8px 10px 4px' }}>Tutoring</div>
             <NavItem to="/student/find-tutor" label="Find a Tutor" icon="&#x1F50D;" active={isActive('/student/find-tutor')} />
             <NavItem to="/student/bookings" label="My Bookings" icon="&#x1F4C5;" active={isActive('/student/bookings')} />
             <NavItem to="/student/schedule" label="Schedule" icon="&#x1F552;" active={isActive('/student/schedule')} />
@@ -144,6 +148,7 @@ function Dashboard() {
             <Route path="/help" element={<HelpDesk />} />
             <Route path="/forum" element={<Forum />} />
             <Route path="/flashcards" element={<Flashcards />} />
+          <Route path="/classes" element={<MyClasses />} />
           </Routes>
         </div>
       </main>
@@ -226,7 +231,7 @@ const S = {
   sectionHeader: {
     fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)',
     textTransform: 'uppercase', letterSpacing: '0.08em',
-    padding: '8px 10px 4px',
+    margin: 0,
   },
   navItem: {
     display: 'flex', alignItems: 'center', gap: '10px',
