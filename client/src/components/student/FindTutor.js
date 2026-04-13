@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { byDept, findByCode } from '../../data/gsuCourses';
 
@@ -13,24 +13,34 @@ function FindTutor() {
   const [booking, setBooking] = useState(null);
   const [message, setMessage] = useState({ text: '', type: '' });
 
-  const search = async (e) => {
-    e.preventDefault();
+  // Auto-load all tutors on mount so users see results without clicking Search
+  useEffect(() => { runSearch({}); }, []);
+
+  const runSearch = async (filters = null) => {
     setLoading(true);
     setMessage({ text: '', type: '' });
     try {
       const params = new URLSearchParams();
-      if (subject) params.set('subject', subject);
-      if (day) params.set('day', day);
-      if (pref) params.set('pref', pref);
-      const res = await api.get('/tutors/search?' + params.toString());
-      setResults(res.data);
+      const f = filters || { subject, day, pref };
+      if (f.subject) params.set('subject', f.subject);
+      if (f.day) params.set('day', f.day);
+      if (f.pref) params.set('pref', f.pref);
+      const url = '/tutors/search' + (params.toString() ? '?' + params.toString() : '');
+      const res = await api.get(url);
+      setResults(Array.isArray(res.data) ? res.data : []);
       setSearched(true);
     } catch (err) {
-      setMessage({ text: 'Search failed, try again', type: 'error' });
+      const code = err.response?.status;
+      setMessage({
+        text: code === 401 ? 'Please log in again' : `Search failed (${code || 'network'})`,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
   };
+
+  const search = (e) => { e.preventDefault(); runSearch(); };
 
   const requestBooking = async (tutorId) => {
     const date = prompt('Session start (YYYY-MM-DDTHH:mm)');
