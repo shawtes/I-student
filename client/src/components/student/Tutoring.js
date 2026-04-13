@@ -20,10 +20,14 @@ function Tutoring() {
   // Input
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
+  const [usage, setUsage] = useState(null);
 
   const chatEndRef = useRef(null);
 
-  useEffect(() => { loadConvos(); loadFiles(); loadFolders(); }, []);
+  useEffect(() => { loadConvos(); loadFiles(); loadFolders(); loadUsage(); }, []);
+  const loadUsage = async () => {
+    try { setUsage((await api.get('/subscriptions/usage')).data); } catch {}
+  };
   useEffect(() => { loadConvos(); }, [filterFolder]);
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -114,6 +118,7 @@ function Tutoring() {
       });
       setMessages(prev => [...prev, res.data.message]);
       loadConvos();
+      loadUsage();
     } catch (err) {
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -215,6 +220,22 @@ function Tutoring() {
 
       {/* Center: Chat */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {usage && usage.limit != null && (
+          <div style={{
+            padding: '6px 12px', marginBottom: '8px',
+            background: usage.remaining <= 2 ? 'var(--orange-light)' : 'var(--bg)',
+            border: `1px solid ${usage.remaining <= 2 ? 'var(--orange)' : 'var(--border)'}`,
+            borderRadius: '8px', fontSize: '0.8rem',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+          }}>
+            <span style={{ color: 'var(--text-secondary)' }}>
+              {usage.used}/{usage.limit} AI requests used today ({usage.plan} plan)
+            </span>
+            {usage.remaining <= 2 && (
+              <a href="/student/billing" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>Upgrade &rarr;</a>
+            )}
+          </div>
+        )}
         <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '500px' }}>
           {/* Messages */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>

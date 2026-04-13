@@ -4,9 +4,10 @@ const auth = require('../middleware/auth');
 const StudyContent = require('../models/StudyContent');
 const studyService = require('../services/studyService');
 const { aiLimiter } = require('../middleware/rateLimiter');
+const { aiQuota } = require('../middleware/aiQuota');
 
 // Generate study content (quiz, flashcards, guide) - with AI rate limiting
-router.post('/generate', auth, aiLimiter, async (req, res) => {
+router.post('/generate', auth, aiLimiter, aiQuota, async (req, res) => {
   try {
     const { type, title, fileIds, topic } = req.body;
 

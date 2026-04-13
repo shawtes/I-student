@@ -16,6 +16,7 @@ import Forum from './Forum';
 import Flashcards from './Flashcards';
 import MyClasses from './MyClasses';
 import Billing from './Billing';
+import UpgradePrompt from '../UpgradePrompt';
 
 function Dashboard() {
   const { user, logout } = useAuth();
@@ -23,8 +24,20 @@ function Dashboard() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userCourses, setUserCourses] = useState([]);
+  const [showWelcome, setShowWelcome] = useState(false);
 
-  useEffect(() => { loadCourses(); }, []);
+  useEffect(() => {
+    loadCourses();
+    // Show upgrade prompt on first login (once per user)
+    const seenKey = 'seenUpgradePrompt:' + (user?.email || user?.id || 'anon');
+    if (!localStorage.getItem(seenKey)) {
+      const t = setTimeout(() => {
+        setShowWelcome(true);
+        localStorage.setItem(seenKey, '1');
+      }, 1200);
+      return () => clearTimeout(t);
+    }
+  }, [user?.email, user?.id]);
 
   const loadCourses = async () => {
     try {
@@ -32,6 +45,13 @@ function Dashboard() {
       setUserCourses(res.data.courses || []);
     } catch {}
   };
+
+  // Global quota-exceeded handler — any component can trigger this via the event.
+  useEffect(() => {
+    const onQuota = () => setShowWelcome(true);
+    window.addEventListener('quota-exceeded', onQuota);
+    return () => window.removeEventListener('quota-exceeded', onQuota);
+  }, []);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -42,6 +62,7 @@ function Dashboard() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
+      <UpgradePrompt open={showWelcome} onClose={() => setShowWelcome(false)} />
       {/* Sidebar */}
       <aside style={{
         ...S.sidebar,

@@ -6,10 +6,11 @@ const tutoringService = require('../services/tutoringService');
 const Conversation = require('../models/Conversation');
 const File = require('../models/File');
 const { aiLimiter } = require('../middleware/rateLimiter');
+const { aiQuota } = require('../middleware/aiQuota');
 
 // ── Legacy single-shot endpoint (backward compat) ──────────────────────
 
-router.post('/ask', auth, aiLimiter, async (req, res) => {
+router.post('/ask', auth, aiLimiter, aiQuota, async (req, res) => {
   try {
     const { question, fileIds } = req.body;
     if (!question) return res.status(400).json({ message: 'Question is required' });
@@ -122,7 +123,7 @@ router.delete('/conversations/:id', auth, async (req, res) => {
 });
 
 // Send a message in a conversation
-router.post('/conversations/:id/messages', auth, aiLimiter, async (req, res) => {
+router.post('/conversations/:id/messages', auth, aiLimiter, aiQuota, async (req, res) => {
   try {
     const { content, fileIds } = req.body;
     if (!content) return res.status(400).json({ message: 'Content is required' });

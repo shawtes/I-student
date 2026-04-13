@@ -5,6 +5,7 @@ const loadUser = require('../middleware/loadUser');
 const Flashcard = require('../models/Flashcard');
 const flashcardService = require('../services/flashcardService');
 const { aiLimiter } = require('../middleware/rateLimiter');
+const { aiQuota } = require('../middleware/aiQuota');
 
 // List my decks with card counts
 router.get('/decks', auth, loadUser, async (req, res) => {
@@ -60,7 +61,7 @@ router.post('/', auth, loadUser, async (req, res) => {
 });
 
 // AI: generate cards from text, files, or both
-router.post('/generate', auth, loadUser, aiLimiter, async (req, res) => {
+router.post('/generate', auth, loadUser, aiLimiter, aiQuota, async (req, res) => {
   try {
     const { deck, topic, text, fileIds, count } = req.body;
     if (!deck) {

@@ -14,6 +14,18 @@ router.get('/plans', (req, res) => {
   res.json(PLANS);
 });
 
+// Get today's AI usage for current user
+router.get('/usage', auth, async (req, res) => {
+  try {
+    const { getUsage } = require('../middleware/aiQuota');
+    const usage = await getUsage(req.user.cognitoId);
+    res.json(usage);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get my subscription (creates free one if none exists)
 router.get('/me', auth, async (req, res) => {
   try {
