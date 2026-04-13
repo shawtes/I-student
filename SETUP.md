@@ -1,314 +1,255 @@
-# iStudent - Setup and Infrastructure
+# iStudent setup notes
 
-This doc covers how the web app is built, what libraries we use, what database we're on, and how it's deployed on AWS.
+Quick rundown of how the app is put together, what we used, and how it ends up on the internet. Written mostly for us to remember later.
 
-## Overview
+## What the app is
 
-iStudent is a two-tier web app. There's a React single page app in the browser that talks to a Node.js/Express API over HTTPS. The API uses MongoDB Atlas for persistence and AWS S3 for file uploads. Authentication is handled by AWS Cognito. The live site is hosted on AWS Amplify (frontend) with a Beanstalk environment for the backend, fronted by CloudFront for HTTPS.
+Two pieces: a React SPA in the browser and a Node/Express API on the backend. They talk over HTTPS. The API stores stuff in MongoDB Atlas, uploads files to S3, and runs Cognito for logins. Live site is on AWS Amplify with the API sitting on Elastic Beanstalk behind CloudFront.
+
+Rough flow of a request:
 
 ```
-Browser
-  |
-  v
-Amplify static hosting (React bundle, SPA rewrites)
-  |  /api/*
-  v
-CloudFront (HTTPS -> HTTP re-termination)
-  |
-  v
-Elastic Beanstalk (Node 22, Express app)
-  |
-  +--> MongoDB Atlas (all app data)
-  +--> S3 (uploaded files)
-  +--> Gemini / OpenAI / Bedrock (AI calls)
-  +--> Cognito (token verification)
+browser -> Amplify (static site) -> CloudFront (https) -> Elastic Beanstalk (Express)
+                                                              |
+                                                              +-> MongoDB Atlas
+                                                              +-> S3
+                                                              +-> Gemini / OpenAI
+                                                              +-> Cognito JWKS
 ```
 
 ## Frontend
 
-The UI is a plain Create React App project under `client/`. We chose CRA because the project started before the team had exposure to Next.js and it's the simplest path for a pure SPA.
+Plain Create React App under `client/`. We started on CRA before anyone on the team knew Next.js and never moved off. Its fine for an SPA.
 
-### Core libraries
+Main libraries:
 
-| Package | Version | What it does |
-|---|---|---|
-| `react` | 18.x | UI framework |
-| `react-router-dom` | 6.x | Client-side routing for student/tutor/admin pages |
-| `axios` | 1.12 | HTTP client with interceptors for auth tokens |
-| `aws-amplify` | latest | Cognito sign in/up/confirm and fetching the ID token |
+- `react` 18
+- `react-router-dom` for the routes (student/tutor/admin dashboards are all separate trees)
+- `axios` for API calls, with an interceptor that attaches the Cognito token
+- `aws-amplify` for the Cognito sign up / sign in / verify flow
+- `react-big-calendar` + `moment` for the Schedule page
 
-### UI libraries
+No Tailwind. No component library. Styling is a mix of one global `index.css` with CSS variables for colors and a bunch of inline style objects on components. Works fine, probably not the path we'd pick again.
 
-| Package | What it does |
-|---|---|
-| `react-big-calendar` | Month/week/day calendar on the Schedule page |
-| `moment` | Date formatting/parsing for the calendar localizer |
-
-No Tailwind, no component library. Styles are a mix of a small `index.css` with CSS custom properties for colors/spacing, plus inline style objects on components.
-
-### Project layout
+Folder layout looks like this:
 
 ```
 client/src/
   components/
-    auth/            Login, Register, DevLogin
-    student/         Dashboard shell + all student pages
-    tutor/           Tutor dashboard (Availability, Requests, Earnings, Profile)
-    admin/           Admin dashboard + HelpDeskAdmin
+    auth/       Login, Register, DevLogin
+    student/    Dashboard shell + every student page (Files, Tutoring, Flashcards, Schedule, Billing, etc)
+    tutor/      Tutor dashboard (Requests, Availability, Earnings, Profile)
+    admin/      Admin dashboard + HelpDeskAdmin
   context/
-    AuthContext.js   Cognito session + dev-login fallback
+    AuthContext.js   Cognito session + dev login fallback
   services/
     api.js           Axios instance with auth interceptor
   data/
-    gsuCourses.js    GSU course catalog (used across pickers)
+    gsuCourses.js    GSU course catalog, used by everything
 ```
 
 ## Backend
 
-Node.js 22 running Express. Code is organized by feature: each top-level concept has a route file, a Mongoose model, and sometimes a service for heavier logic like AI calls.
+Node 22 + Express. Code is split by feature — every major thing (files, bookings, forum, tickets, etc) has a route file, a Mongoose model, and sometimes a services file if theres AI or heavier logic.
 
-### Core libraries
+Libraries that matter:
 
-| Package | Version | What it does |
-|---|---|---|
-| `express` | 4.18 | HTTP server and routing |
-| `mongoose` | 8.x | MongoDB ODM (schemas + queries) |
-| `jsonwebtoken` | 9.x | Verifying Cognito JWTs |
-| `jwks-rsa` | 4.x | Fetching Cognito's signing keys from the JWKS endpoint |
-| `cors` | 2.x | CORS middleware (for dev; prod is same-origin) |
-| `dotenv` | 16.x | Loading `.env` locally |
-| `express-rate-limit` | 8.x | Per-IP rate limits on auth and AI endpoints |
-| `multer` | 2.x | Multipart file uploads (memory storage, streams straight to S3) |
-| `bcryptjs` | 2.x | Legacy password hashing (not used now that auth is Cognito) |
+- `express` 4.18 — the server
+- `mongoose` 8 — MongoDB ODM
+- `jsonwebtoken` + `jwks-rsa` — for verifying Cognito tokens against their JWKS endpoint
+- `multer` — file uploads, memory storage so we can pipe straight to S3
+- `express-rate-limit` — basic per-IP limits, plus a stricter one for the AI endpoints
+- `cors`, `dotenv`, `bcryptjs` (bcrypt is leftover from before we switched to Cognito)
 
-### AWS SDKs
+AWS SDKs:
 
-| Package | What it does |
-|---|---|
-| `@aws-sdk/client-s3` | Upload/download/delete objects in S3 |
-| `@aws-sdk/s3-request-presigner` | Generate short-lived signed URLs for file downloads |
-| `@aws-sdk/client-bedrock-runtime` | Claude via Bedrock (fallback, blocked on this AWS account) |
+- `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` for uploads and presigned download URLs
+- `@aws-sdk/client-bedrock-runtime` — tried to use Bedrock for Claude but our account doesnt have access so its a dead fallback
 
-### AI and content libraries
+AI + content:
 
-| Package | What it does |
-|---|---|
-| `@google/generative-ai` | Gemini 2.5 Flash, primary AI provider |
-| `openai` | GPT-4o-mini, secondary fallback |
-| `pdf-parse` | Extracts text from uploaded PDFs for AI context |
+- `@google/generative-ai` for Gemini 2.5 Flash (what actually runs in prod)
+- `openai` as a backup if we ever put a key in
+- `pdf-parse` for pulling text out of uploaded PDFs so the AI can read them
 
-### Route layout
+Server folders:
 
 ```
 server/
-  index.js                 Express app, mounts all routes
+  index.js            Mounts all routes, serves the built React app in prod
   config/
-    database.js            Mongo connection
-    s3.js                  S3 client + helpers
+    database.js       Mongo connection
+    s3.js             S3 client + upload/delete/presign helpers
   middleware/
-    auth.js                Verifies Cognito JWT, supports DEV_AUTH bypass
-    loadUser.js            Looks up the Mongo User from the Cognito sub
-    aiQuota.js             Per-day AI request limits by subscription plan
-    rateLimiter.js         Generic rate limits
-  models/                  Mongoose schemas (User, File, Conversation,
-                           Booking, Payment, Ticket, ForumPost, etc.)
-  routes/                  One file per feature area
-  services/                AI clients, file text extraction, study tools
+    auth.js           Cognito JWT check, plus dev bypass when DEV_AUTH=1
+    loadUser.js       Looks up the Mongo User for the current Cognito sub
+    aiQuota.js        Per-day AI request counter keyed to the subscription plan
+    rateLimiter.js    Generic rate limiters
+  models/             Mongoose schemas
+  routes/             One file per feature
+  services/           AI clients, file text extraction, study tools
   scripts/
-    seed.js                Populates demo data (tutors, forum, tickets...)
+    seed.js           Dumps demo data into the DB
 ```
 
-### Notable design choices
+One thing worth knowing: most routes stack `auth` then `loadUser`. `auth` parses the token and sets `req.user` with the Cognito sub, email, etc. `loadUser` looks up the Mongo `User` by cognitoId and hangs it off `req.dbUser`. Relations (booking.student, flashcard.owner, etc) always reference `req.dbUser._id`, not the cognitoId string.
 
-The `auth` middleware has two modes. In real production with a Cognito JWT, it verifies the token against the Cognito JWKS. In demo/dev mode (set `DEV_AUTH=1` in the environment), it accepts an `x-dev-user` header with a JSON blob instead. This lets us log in as any role without going through Cognito email verification, which is critical for demos.
-
-Most routes use a two-middleware chain: `auth` sets `req.user` from the token, then `loadUser` finds the Mongo `User` document by `cognitoId` and attaches it as `req.dbUser`. Route handlers treat `req.dbUser._id` as the canonical user reference for relations (bookings, flashcards, etc.).
-
-The AI services are layered with a fallback chain. Each service tries Gemini first, then Bedrock, then OpenAI, and finally a naive non-AI fallback if nothing is configured. That way demos don't break when a provider is rate-limited.
+The AI services have a fallback chain — try Gemini, then Bedrock, then OpenAI, then a dumb sentence splitter if everythings broken. In practice only Gemini runs because Bedrock access was never granted and we dont have an OpenAI key on the env.
 
 ## Database
 
-We use **MongoDB Atlas** (free-tier shared cluster, `M0`) in the `us-east-2` region. Connection string lives in the `MONGODB_URI` environment variable.
+MongoDB Atlas on the free shared tier (M0), us-east-2. Connection string is in the `MONGODB_URI` env var.
 
-Why MongoDB rather than Postgres/MySQL: the data model has a lot of variable-shape documents (conversations with embedded messages, forum posts with replies, tickets with threaded messages) and the schema evolved a lot during the semester. Schemaless documents let us iterate quickly without migrations.
+Went with Mongo because the data shapes kept changing through the semester and migrations wouldve been a pain. A lot of our models have embedded arrays too — conversations have messages inline, forum posts have replies inline, tickets have their message thread inline — which Mongo handles naturally. SQL wouldve been more work for the same result.
 
-### Collections
+Collections currently in use:
 
-| Collection | What it holds |
-|---|---|
-| `users` | Accounts, role (student/tutor/admin), GSU courses enrolled, tutor profile fields |
-| `files` | Uploaded file metadata (original name, S3 key, folder/course, size) |
-| `conversations` | AI tutor chat sessions with embedded message arrays |
-| `flashcards` | AI or manually generated study cards, grouped by deck name |
-| `study_contents` | Quizzes, flashcard sets, and study guides generated from files/topics |
-| `study_sessions` | Calendar events (study blocks, exams, assignment deadlines) |
-| `bookings` | Tutoring session requests and their status lifecycle |
-| `payments` | Stripe-style records for both tutoring payments and subscription charges |
-| `subscriptions` | Per-user Free/Pro/Premium plan with payment history |
-| `usages` | Daily AI request counters for quota enforcement |
-| `availabilities` | Tutor weekly schedule slots |
-| `tickets` | Help desk tickets with threaded messages |
-| `forum_posts` | Forum threads with embedded replies, categories, likes |
-| `groups` | Study groups (name, admin, members, pending join requests) |
-| `progresses` | Tutor-written progress notes on students |
-| `ratings` | Per-session tutor ratings |
-| `gmail_tokens` | OAuth tokens for Gmail Calendar integration |
+- `users` — accounts, role, GSU courses enrolled, tutor fields (subjects, rate, rating)
+- `files` — uploaded file metadata. Actual bytes live in S3
+- `conversations` — AI tutor chat sessions with embedded message arrays
+- `flashcards` — AI or manually made, grouped by deck name (just a string)
+- `study_contents` — quizzes, flashcard sets, and study guides generated by the Study Tools page
+- `study_sessions` — calendar events (study blocks, exams, assignment due dates)
+- `bookings` — tutoring session requests
+- `payments` — payment records for both tutoring and subscriptions
+- `subscriptions` — Free/Pro/Premium plan and payment history
+- `usages` — daily AI request counter per user (for the quota)
+- `availabilities` — tutor weekly slots
+- `tickets` — help desk tickets with embedded messages
+- `forum_posts` — threads with embedded replies, likes, categories
+- `groups` — study groups, members, pending join requests
+- `progresses` — tutor progress notes on students
+- `ratings` — session ratings
+- `gmail_tokens` — placeholder for the Gmail Calendar OAuth tokens (flow not fully wired)
 
-### Indexes worth knowing about
+Indexes that actually matter: `users.email` unique, `users.cognitoId` unique, `bookings` has a unique compound index on `(tutor, startTime)` so the same tutor cant get double-booked, and `usages` has a unique index on `(userId, date)` so the quota counter is one row per user per day.
 
-- `users.email` is unique
-- `users.cognitoId` is unique
-- `conversations.userId` + `updatedAt` for fast history listing
-- `bookings.tutor` + `startTime` is unique (prevents double-booking)
-- `usages.userId` + `date` is unique (one row per user per day)
+## AWS stuff
 
-## AWS infrastructure
+Everythings in `us-east-2` (Ohio). We picked Ohio early on and just kept putting things there.
 
-Everything is in `us-east-2` (Ohio).
+### Amplify (frontend)
 
-### Amplify (frontend hosting)
+App id `d1s63qj9hsr1zj`, live at `main.d1s63qj9hsr1zj.amplifyapp.com`. Gives us HTTPS with a valid cert for free which is the main reason we used it. SPA rewrites are configured so deep links like `/student/grades` dont 404.
 
-The React bundle is deployed to AWS Amplify. The app ID is `d1s63qj9hsr1zj`, domain is `main.d1s63qj9hsr1zj.amplifyapp.com`.
+Two custom rewrite rules:
 
-We chose Amplify because it gives us HTTPS with a valid cert automatically, handles the SPA rewrite for client-side routes, and has a generous free tier.
+1. `/api/<*>` proxies to `https://d5u6ox7235rfh.cloudfront.net/api/<*>` (status 200). This is how the HTTPS site reaches the HTTP backend without getting blocked by mixed-content.
+2. A catchall that sends everything non-file to `/index.html` so React Router can handle routing.
 
-Two custom rewrite rules are configured:
-
-1. `/api/<*>` proxies to `https://d5u6ox7235rfh.cloudfront.net/api/<*>` with status 200. This is how the frontend reaches the API from an HTTPS origin.
-2. A SPA catch-all that rewrites any non-file path to `/index.html` so React Router can handle it.
-
-Deploy flow: the build zip is uploaded via the Amplify API because we haven't hooked the GitHub repo to Amplify yet.
+Auto-deploy from GitHub isnt hooked up yet, so every frontend push needs a manual step:
 
 ```
 cd client && npm run build
 cd build && zip -qr /tmp/build.zip .
 aws amplify create-deployment --app-id d1s63qj9hsr1zj --branch-name main
-# Upload the zip to the pre-signed URL from the response
+# take the zipUploadUrl from that response, curl PUT the zip to it
 aws amplify start-deployment --app-id d1s63qj9hsr1zj --branch-name main --job-id <id>
 ```
 
-### Elastic Beanstalk (backend hosting)
+### Elastic Beanstalk (backend)
 
-The Node/Express app runs on Elastic Beanstalk in a single-instance environment.
+Environment is `i-student-env`, platform is Node.js 22 on Amazon Linux 2023 (6.10.1). The CNAME is `i-student-env.eba-qrqp4xjp.us-east-2.elasticbeanstalk.com`. Single instance, no load balancer. Thats fine for a demo, would need to scale out for real traffic.
 
-- Environment: `i-student-env`
-- Platform: Node.js 22 on Amazon Linux 2023 (6.10.1)
-- CNAME: `i-student-env.eba-qrqp4xjp.us-east-2.elasticbeanstalk.com`
+Deploys happen with `eb deploy`. `.ebignore` excludes `node_modules`, `client/src`, `client/public`, the uploads folder, etc, but keeps `client/build/` so EB can serve the frontend as a backup if Amplify is ever down.
 
-Deploys happen via the EB CLI: `eb deploy` zips the repo minus what's in `.ebignore`, uploads to S3, and rolls out to the instance. `.ebignore` keeps `node_modules`, the client source, and uploads folder out of the bundle. The React build output is included so a single EB instance can serve both API and (as a backup) the compiled frontend.
+Env vars that need to be set (via `eb setenv` or the console):
 
-Environment variables are set via `eb setenv` or the EB console:
+- `MONGODB_URI`
+- `AWS_REGION`, `AWS_S3_BUCKET` (`i-student-files`)
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (should really be an instance role but were using keys for now)
+- `COGNITO_REGION`, `COGNITO_USER_POOL_ID`
+- `GEMINI_API_KEY`
+- `OPENAI_API_KEY` (optional)
+- `DEV_AUTH=1` during demos, has to be removed before real launch
 
-- `MONGODB_URI` — Atlas connection string
-- `AWS_REGION` — `us-east-2`
-- `AWS_S3_BUCKET` — `i-student-files`
-- `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` — S3 access (instance role would be better, on the list)
-- `COGNITO_REGION` / `COGNITO_USER_POOL_ID` — Used to verify JWTs
-- `GEMINI_API_KEY` — Google Gemini
-- `OPENAI_API_KEY` — OpenAI (fallback, optional)
-- `DEV_AUTH` — set to `1` during demos so `x-dev-user` headers work
+### CloudFront (HTTPS shim)
 
-### CloudFront (HTTPS wrapper)
+EBs default domain only speaks HTTP. Amplify wont proxy from HTTPS to HTTP (mixed content blocked). So CloudFront sits in the middle, terminating HTTPS with the default `*.cloudfront.net` cert and talking to EB over HTTP internally.
 
-Elastic Beanstalk's default domain only speaks HTTP, and Amplify won't proxy to an HTTP target from an HTTPS page (mixed content). CloudFront sits in front to terminate HTTPS using its default `*.cloudfront.net` cert.
-
-- Distribution ID: `EIXPRYSOA1021`
+- Distribution: `EIXPRYSOA1021`
 - Domain: `d5u6ox7235rfh.cloudfront.net`
-- Origin: `i-student-env.eba-qrqp4xjp.us-east-2.elasticbeanstalk.com` (HTTP)
-- Cache policy: `Managed-CachingDisabled` (we don't want API responses cached)
-- Origin request policy: `Managed-AllViewer` (forwards Authorization header, query strings, cookies)
+- Cache policy: `Managed-CachingDisabled` — we dont want API responses cached ever
+- Origin request policy: `Managed-AllViewer` — forwards Authorization headers, query strings, cookies
 
-The chain a request takes:
+If you ever change the CloudFront config, make sure the origin request policy still forwards Authorization or every authenticated request will 401.
+
+### S3
+
+Bucket is `i-student-files`, us-east-2, private. Objects are keyed `uploads/<cognitoId>/<timestamp>-<random>.<ext>`. The backend generates 15-minute presigned URLs for downloads so the browser can fetch files directly without proxying through the API.
+
+Multer validates the MIME type and caps uploads at 100 MB. PDFs, Word, plain text, and common audio/video formats are accepted.
+
+### Cognito
+
+User pool `us-east-2_baWOWMykv`. Amplify handles sign up, confirm (email code), sign in, and fetching the ID token. The backend verifies the JWT by:
+
+1. Reading the `kid` from the token header
+2. Fetching the matching public key from Cognitos JWKS endpoint (jwks-rsa caches it)
+3. Verifying the signature and checking the `iss` claim matches our pool URL
+
+Roles live on the Mongo User record, not as Cognito custom attributes. First time a new user hits `/api/auth/me`, we create their Mongo record with whatever role they picked at registration (student or tutor — admin is locked, an existing admin has to grant it from the admin dashboard).
+
+### CI/CD
+
+None. Everythings manual. `eb deploy` for backend, the Amplify script above for frontend. At some point we should hook Amplify to the GitHub repo, just havent done it.
+
+## AI
+
+Gemini 2.5 Flash is the one doing the work. Free tier is generous enough (15 requests per minute, 1M input tokens per day) for a class project. Set `GEMINI_API_KEY` in the EB env.
+
+Fallback order in each service file:
+
+1. Gemini
+2. Bedrock Claude (doesnt work, account doesnt have access)
+3. OpenAI (only if OPENAI_API_KEY is set)
+4. Dumb sentence splitter (last resort)
+
+AI endpoints go through the `aiQuota` middleware which counts per-user per-day requests in the `usages` collection. Limits by subscription plan:
+
+- Free: 5 per day
+- Pro: 100 per day
+- Premium: unlimited (skips tracking)
+
+When a Free user hits their limit, the API returns 402 and the frontend pops the upgrade modal.
+
+## Running it locally
 
 ```
-browser -> Amplify (https) -> CloudFront (https) -> EB (http) -> Express
-```
-
-### S3 (file storage)
-
-Bucket: `i-student-files` in `us-east-2`.
-
-Objects are keyed as `uploads/<cognitoId>/<timestamp>-<random>.<ext>`. The bucket is private; downloads go through the backend, which generates short-lived presigned URLs so the frontend can fetch them directly without proxying through EB.
-
-Uploaded file types are restricted in the multer config: PDFs, Word docs, plain text, and common audio/video formats.
-
-### Cognito (authentication)
-
-User pool ID: `us-east-2_baWOWMykv` in `us-east-2`.
-
-The React app uses `aws-amplify/auth` to handle sign up, email verification, sign in, and fetching the ID token. The ID token is attached as `Authorization: Bearer <token>` to every API request via an axios interceptor.
-
-The backend verifies tokens by:
-
-1. Parsing the JWT header to get the `kid`
-2. Fetching the matching public key from the Cognito JWKS endpoint (cached by `jwks-rsa`)
-3. Verifying the signature and checking the `iss` claim matches our pool
-
-Roles (`student`, `tutor`, `admin`) are stored on the Mongo `User` record rather than as Cognito custom attributes. The first time a new Cognito user hits `/api/auth/me`, the backend creates a Mongo record with the role they chose at registration. Admin role can't be self-assigned; an existing admin has to grant it from the admin dashboard.
-
-### GitHub Actions / CI
-
-No CI configured yet. Deploys are manual (`eb deploy` for backend, Amplify upload script for frontend). Commits still go to the `shawtes/I-student` repo on GitHub for version control.
-
-## AI stack
-
-The app makes AI calls in three places: the AI Tutor chat, flashcard generation, and study tool generation (quizzes, guides).
-
-| Provider | Role | Model | Cost |
-|---|---|---|---|
-| Google Gemini | Primary | `gemini-2.5-flash` | Free tier (15 req/min, 1M tokens/day) |
-| AWS Bedrock | Fallback | Claude Sonnet 4.6 / Haiku 4.5 | Paid, but our account doesn't have access |
-| OpenAI | Secondary fallback | `gpt-4o-mini` | Paid per token |
-| Naive splitter | Last resort | N/A | Free, low quality |
-
-Each AI service (`server/services/*Service.js`) tries these in order. If Gemini returns a valid response, we use it. If it fails (rate limit, API error), we fall through to the next one. For the demo, Gemini is the only one actually doing work.
-
-Per-user daily quotas are enforced by the `aiQuota` middleware before the AI call:
-
-- Free plan: 5 requests/day
-- Pro plan: 100 requests/day
-- Premium plan: unlimited
-
-When a free user hits 5, the API returns 402 and the frontend shows an upgrade modal.
-
-## Local development
-
-```bash
-# Install everything
-npm install && cd client && npm install && cd ..
-
-# Environment
+npm install
+cd client && npm install && cd ..
 cp .env.example .env
-# Fill in MONGODB_URI, AWS keys, COGNITO_*, GEMINI_API_KEY
+# fill in MONGODB_URI, AWS keys, COGNITO_*, GEMINI_API_KEY
 
-# Backend (terminal 1)
-DEV_AUTH=1 npm run dev      # Port 5001
+# Backend on port 5001
+DEV_AUTH=1 npm run dev
 
-# Frontend (terminal 2)
-cd client && npm start      # Port 3000
+# Frontend on port 3000
+cd client && npm start
 ```
 
-Visit `http://localhost:3000/dev-login` and pick a role to log in without Cognito.
+Then open `http://localhost:3000/dev-login` and pick a role. That skips Cognito so you dont have to register and verify every time you clear your browser.
 
-To populate demo data against whatever DB your `.env` points at:
+Demo data:
 
-```bash
+```
 node server/scripts/seed.js
 ```
 
-## Production URLs
+Will upsert 6 tutors, 5 students, 1 admin, plus bookings, forum posts, tickets, flashcards, and calendar events. Run it against whatever Mongo your `.env` points to.
 
-| What | URL |
-|---|---|
-| Live app (HTTPS) | https://main.d1s63qj9hsr1zj.amplifyapp.com |
-| Backup (HTTP) | http://i-student-env.eba-qrqp4xjp.us-east-2.elasticbeanstalk.com |
-| API direct | https://d5u6ox7235rfh.cloudfront.net/api |
-| GitHub repo | https://github.com/shawtes/I-student |
+## URLs
 
-## Known gaps
+- Live (https): https://main.d1s63qj9hsr1zj.amplifyapp.com
+- Backup direct to EB (http): http://i-student-env.eba-qrqp4xjp.us-east-2.elasticbeanstalk.com
+- API over HTTPS: https://d5u6ox7235rfh.cloudfront.net/api
+- GitHub: https://github.com/shawtes/I-student
 
-1. Gmail Calendar OAuth flow is only partially wired. The token storage endpoints exist, but the actual OAuth consent screen isn't hooked up yet. Falls back to an internal calendar for now.
-2. Real-time lecture transcription relies on OpenAI Whisper; the WebSocket streaming path isn't in place.
-3. Amplify auto-build on git push isn't connected. Every frontend change requires the manual build+upload script.
-4. The single-instance EB environment has no auto-scaling. Fine for demos, not for real traffic.
-5. `DEV_AUTH=1` is currently enabled in production so we can demo role switching. This has to be turned off (`eb setenv DEV_AUTH=`) before the site gets any real users.
+## Stuff thats half-done
+
+- Gmail Calendar OAuth — token storage is there, actual consent flow isnt wired up, so we just use the internal calendar
+- Real-time transcription — uses Whisper via OpenAI but no WebSocket streaming, so its batch only
+- Amplify auto-deploy from GitHub isnt connected
+- EB is single-instance, no autoscaling. Fine for a class demo, not for real users
+- `DEV_AUTH=1` is turned on in prod right now for the demo. Has to be turned off (`eb setenv DEV_AUTH=`) before the site is real
+- The Bedrock integration is written but our AWS account doesnt have Bedrock access, so that path never executes
