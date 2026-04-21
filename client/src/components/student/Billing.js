@@ -9,6 +9,29 @@ function Billing() {
 
   useEffect(() => { load(); }, []);
 
+  // Handle return from Stripe Checkout
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('checkout');
+    const sessionId = params.get('session_id');
+    if (status === 'success' && sessionId) {
+      (async () => {
+        try {
+          const res = await api.post('/subscriptions/checkout/verify', { sessionId });
+          setSub(res.data);
+          setAlert({ text: `Upgraded to ${res.data.planDetails?.name}`, type: 'success' });
+        } catch (err) {
+          setAlert({ text: err.response?.data?.message || 'Could not verify payment', type: 'error' });
+        } finally {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      })();
+    } else if (status === 'cancelled') {
+      setAlert({ text: 'Checkout cancelled', type: 'error' });
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   const load = async () => {
     try {
       const [p, s] = await Promise.all([
@@ -25,12 +48,10 @@ function Billing() {
     setUpgrading(plan);
     setAlert({ text: '', type: '' });
     try {
-      const res = await api.post('/subscriptions/upgrade', { plan, method: 'card' });
-      setSub(res.data);
-      setAlert({ text: `Upgraded to ${plans[plan].name}`, type: 'success' });
+      const res = await api.post('/subscriptions/checkout', { plan });
+      window.location.href = res.data.url;
     } catch (err) {
-      setAlert({ text: err.response?.data?.message || 'Upgrade failed', type: 'error' });
-    } finally {
+      setAlert({ text: err.response?.data?.message || 'Could not start checkout', type: 'error' });
       setUpgrading(null);
     }
   };
