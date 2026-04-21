@@ -11,10 +11,22 @@ function Profile() {
   const [learningPrefs, setLearningPrefs] = useState('');
   const [filter, setFilter] = useState('');
   const [alert, setAlert] = useState({ text: '', type: '' });
+  const [calStatus, setCalStatus] = useState({ configured: false, linked: false });
 
   const groups = byDept();
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadCalStatus(); }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('calendar') === 'linked') {
+      setAlert({ text: 'Google Calendar linked. Future sessions will auto-create Meet links.', type: 'success' });
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('calendar') === 'error') {
+      setAlert({ text: `Google link failed: ${params.get('reason') || 'unknown'}`, type: 'error' });
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const load = async () => {
     try {
@@ -23,6 +35,31 @@ function Profile() {
       setLearningPrefs((res.data.learningPrefs || []).join(', '));
       setHourlyRate(res.data.hourlyRate || '');
       setBio(res.data.bio || '');
+    } catch {}
+  };
+
+  const loadCalStatus = async () => {
+    try {
+      const res = await api.get('/calendar/status');
+      setCalStatus(res.data);
+    } catch {}
+  };
+
+  const linkCalendar = async () => {
+    try {
+      const res = await api.get('/calendar/auth-url');
+      window.location.href = res.data.url;
+    } catch (err) {
+      setAlert({ text: err.response?.data?.message || 'Google OAuth is not configured', type: 'error' });
+    }
+  };
+
+  const unlinkCalendar = async () => {
+    if (!window.confirm('Disconnect Google Calendar? Future sessions will go back to the email flow.')) return;
+    try {
+      await api.delete('/calendar/link');
+      setCalStatus(s => ({ ...s, linked: false }));
+      setAlert({ text: 'Disconnected', type: 'success' });
     } catch {}
   };
 
@@ -65,6 +102,28 @@ function Profile() {
       {alert.text && (
         <div className={`alert ${alert.type === 'success' ? 'alert-success' : 'alert-error'}`}>{alert.text}</div>
       )}
+
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>Google Calendar</h2>
+        {!calStatus.configured ? (
+          <p style={{ color: 'var(--text-muted)' }}>
+            Server isn't configured for Google OAuth — ask the admin to set <code>GOOGLE_CLIENT_ID</code>,{' '}
+            <code>GOOGLE_CLIENT_SECRET</code>, and <code>GOOGLE_REDIRECT_URI</code>.
+          </p>
+        ) : calStatus.linked ? (
+          <div>
+            <p style={{ color: 'var(--green)', margin: '0 0 10px' }}>Connected. Accepted sessions get a Google Meet link automatically.</p>
+            <button type="button" onClick={unlinkCalendar} className="btn btn-secondary btn-sm">Disconnect</button>
+          </div>
+        ) : (
+          <div>
+            <p style={{ color: 'var(--text-muted)', margin: '0 0 10px' }}>
+              Connect to auto-create Google Meet links and calendar invites when you accept a session.
+            </p>
+            <button type="button" onClick={linkCalendar} className="btn btn-primary btn-sm">Connect Google Calendar</button>
+          </div>
+        )}
+      </div>
 
       <div className="card">
         <form onSubmit={save}>

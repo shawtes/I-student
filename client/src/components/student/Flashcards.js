@@ -122,7 +122,7 @@ function Flashcards() {
                         {ff.map(f => (
                           <label key={f._id} style={S.fileItem}>
                             <input type="checkbox" checked={selectedFiles.includes(f._id)} onChange={() => toggleFile(f._id)} />
-                            <span>{f.originalName}</span>
+                            <span>{f.originalName || f.filename || 'Untitled file'}</span>
                           </label>
                         ))}
                       </div>

@@ -46,6 +46,25 @@ function Requests() {
                   {b.subject || 'Tutoring'} &middot; {new Date(b.startTime).toLocaleString()} &middot; {b.durationMinutes}min
                 </div>
                 <span className="badge badge-blue">{b.status}</span>
+                {(b.status === 'accepted' || b.status === 'confirmed') && (
+                  <div style={{ fontSize: '0.85rem', marginTop: '6px' }}>
+                    {b.meetingUrl ? (
+                      <>
+                        Meet link: <a href={b.meetingUrl} target="_blank" rel="noreferrer">{b.meetingUrl}</a>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                          Auto-added to your Google Calendar. Student was invited by email.
+                        </div>
+                      </>
+                    ) : b.student?.email ? (
+                      <>
+                        Student contact: <a href={`mailto:${b.student.email}?subject=${encodeURIComponent(`Meeting link for ${b.subject || 'our session'}`)}`}>{b.student.email}</a>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                          Link your Google Calendar on your Profile to auto-create Meet links.
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+                )}
               </div>
               {showActions && (
                 <div style={{ display: 'flex', gap: '8px' }}>

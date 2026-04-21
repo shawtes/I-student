@@ -16,6 +16,7 @@ import Forum from './Forum';
 import Flashcards from './Flashcards';
 import MyClasses from './MyClasses';
 import Billing from './Billing';
+import LiveTranscribe from './LiveTranscribe';
 import UpgradePrompt from '../UpgradePrompt';
 
 function Dashboard() {
@@ -119,6 +120,7 @@ function Dashboard() {
             <NavItem to="/student/study" label="Study Guides" icon="Sg" active={isActive('/student/study')} color="var(--purple)" />
             <NavItem to="/student/tutoring" label="AI Tutor" icon="Ai" active={isActive('/student/tutoring')} color="var(--green)" />
             <NavItem to="/student/grades" label="Grade Calculator" icon="Gc" active={isActive('/student/grades')} color="var(--orange)" />
+            <NavItem to="/student/transcribe" label="Live Transcribe" icon="Lt" active={isActive('/student/transcribe')} color="var(--red)" />
 
             <div style={S.divider} />
 
@@ -173,6 +175,7 @@ function Dashboard() {
             <Route path="/flashcards" element={<Flashcards />} />
           <Route path="/classes" element={<MyClasses />} />
           <Route path="/billing" element={<Billing />} />
+          <Route path="/transcribe" element={<LiveTranscribe />} />
           </Routes>
         </div>
       </main>

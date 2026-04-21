@@ -25,6 +25,8 @@ const BookingSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Payment'
   },
+  meetingUrl: String,
+  googleEventId: String,
   notes: String,
   createdAt: { type: Date, default: Date.now }
 });

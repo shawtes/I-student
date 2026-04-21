@@ -248,7 +248,6 @@ Will upsert 6 tutors, 5 students, 1 admin, plus bookings, forum posts, tickets, 
 ## Stuff thats half-done
 
 - Gmail Calendar OAuth — token storage is there, actual consent flow isnt wired up, so we just use the internal calendar
-- Real-time transcription — uses Whisper via OpenAI but no WebSocket streaming, so its batch only
 - Amplify auto-deploy from GitHub isnt connected
 - EB is single-instance, no autoscaling. Fine for a class demo, not for real users
 - `DEV_AUTH=1` is turned on in prod right now for the demo. Has to be turned off (`eb setenv DEV_AUTH=`) before the site is real

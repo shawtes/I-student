@@ -5,6 +5,7 @@ const loadUser = require('../middleware/loadUser');
 const Booking = require('../models/Booking');
 const Payment = require('../models/Payment');
 const User = require('../models/User');
+const gcal = require('../services/googleCalendarService');
 
 // Tutor earnings summary
 router.get('/earnings', auth, loadUser, async (req, res) => {
@@ -130,6 +131,31 @@ router.patch('/:id/respond', auth, loadUser, async (req, res) => {
       return res.status(400).json({ message: 'action must be accept or decline' });
     }
     booking.status = action === 'accept' ? 'accepted' : 'declined';
+
+    // When the tutor accepts, try to create a Google Calendar event with a Meet link.
+    // If the tutor hasn't linked Google Calendar, this is a no-op — the student/tutor
+    // still have the email fallback shown in the UI.
+    if (booking.status === 'accepted') {
+      try {
+        const [tutor, student] = await Promise.all([
+          User.findById(booking.tutor).select('email name'),
+          User.findById(booking.student).select('email name'),
+        ]);
+        const result = await gcal.createEventWithMeet(booking.tutor, {
+          summary: `Tutoring: ${booking.subject || 'Session'} with ${student?.name || 'student'}`,
+          description: `I-Student tutoring session.\nSubject: ${booking.subject || 'General'}`,
+          startTime: booking.startTime,
+          durationMinutes: booking.durationMinutes,
+          attendees: [student?.email, tutor?.email],
+        });
+        booking.meetingUrl = result.meetUrl;
+        booking.googleEventId = result.eventId;
+      } catch (e) {
+        // Tutor hasn't linked Google, OAuth not configured, etc. Not fatal.
+        console.log('Meet event skipped:', e.message);
+      }
+    }
+
     await booking.save();
     res.json(booking);
   } catch (err) {
@@ -147,6 +173,9 @@ router.delete('/:id', auth, loadUser, async (req, res) => {
       || String(booking.tutor) === String(req.dbUser._id);
     if (!isParty) return res.status(403).json({ message: 'Not allowed' });
     booking.status = 'cancelled';
+    if (booking.googleEventId) {
+      gcal.deleteEvent(booking.tutor, booking.googleEventId).catch(() => {});
+    }
     await booking.save();
     res.json(booking);
   } catch (err) {
