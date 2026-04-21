@@ -55,6 +55,13 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'I-Student API is running' });
 });
 
+// Public client config (safe to expose — only contains publishable keys and flags)
+app.get('/api/config/public', (req, res) => {
+  res.json({
+    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || null,
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

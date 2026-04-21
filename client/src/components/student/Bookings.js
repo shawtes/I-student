@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import GoogleCalendarCard from '../GoogleCalendarCard';
+import StripePaymentModal from './StripePaymentModal';
 
 function Bookings() {
   const [bookings, setBookings] = useState([]);
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [payingFor, setPayingFor] = useState(null);
 
   useEffect(() => { load(); }, []);
 
@@ -15,20 +17,12 @@ function Bookings() {
     } catch {}
   };
 
-  const pay = async (b) => {
-    const method = prompt('Payment method? (card / paypal / applepay / fail to test failure)', 'card');
-    if (!method) return;
-    try {
-      await api.post('/payments', {
-        bookingId: b._id,
-        amount: 50,
-        method
-      });
-      setMessage({ text: 'Paid. Session confirmed.', type: 'success' });
-      load();
-    } catch (err) {
-      setMessage({ text: err.response?.data?.message || 'Payment failed', type: 'error' });
-    }
+  const pay = (b) => setPayingFor(b);
+
+  const onPaid = () => {
+    setPayingFor(null);
+    setMessage({ text: 'Payment succeeded. Session confirmed.', type: 'success' });
+    load();
   };
 
   const cancel = async (b) => {
@@ -98,6 +92,15 @@ function Bookings() {
           ))
         )}
       </div>
+
+      {payingFor && (
+        <StripePaymentModal
+          booking={payingFor}
+          amount={50}
+          onClose={() => setPayingFor(null)}
+          onSuccess={onPaid}
+        />
+      )}
     </div>
   );
 }
