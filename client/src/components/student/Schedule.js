@@ -4,6 +4,7 @@ import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import api from '../../services/api';
 import { GSU_COURSES } from '../../data/gsuCourses';
+import GoogleCalendarCard from '../GoogleCalendarCard';
 
 const localizer = momentLocalizer(moment);
 
@@ -126,6 +127,8 @@ function Schedule() {
       </div>
 
       {alert.text && <div className={`alert ${alert.type === 'success' ? 'alert-success' : 'alert-error'}`}>{alert.text}</div>}
+
+      <GoogleCalendarCard />
 
       <div style={{ display: 'flex', gap: '16px', marginBottom: '12px', flexWrap: 'wrap' }}>
         {Object.entries(TYPE_COLORS).map(([type, color]) => (
