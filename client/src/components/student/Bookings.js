@@ -1,53 +1,17 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import GoogleCalendarCard from '../GoogleCalendarCard';
 
 function Bookings() {
   const [bookings, setBookings] = useState([]);
   const [message, setMessage] = useState({ text: '', type: '' });
-  const [calStatus, setCalStatus] = useState({ configured: false, linked: false });
 
-  useEffect(() => { load(); loadCalStatus(); }, []);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('calendar') === 'linked') {
-      setMessage({ text: 'Google Calendar linked. Session invites will land in your Gmail.', type: 'success' });
-      window.history.replaceState({}, '', window.location.pathname);
-      loadCalStatus();
-    } else if (params.get('calendar') === 'error') {
-      setMessage({ text: `Google link failed: ${params.get('reason') || 'unknown'}`, type: 'error' });
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const load = async () => {
     try {
       const res = await api.get('/bookings');
       setBookings(res.data);
-    } catch {}
-  };
-
-  const loadCalStatus = async () => {
-    try {
-      const res = await api.get('/calendar/status');
-      setCalStatus(res.data);
-    } catch {}
-  };
-
-  const linkCalendar = async () => {
-    try {
-      const res = await api.get('/calendar/auth-url');
-      window.location.href = res.data.url;
-    } catch (err) {
-      setMessage({ text: err.response?.data?.message || 'Google OAuth is not configured yet', type: 'error' });
-    }
-  };
-
-  const unlinkCalendar = async () => {
-    if (!window.confirm('Disconnect Google Calendar?')) return;
-    try {
-      await api.delete('/calendar/link');
-      setCalStatus(s => ({ ...s, linked: false }));
     } catch {}
   };
 
@@ -86,25 +50,7 @@ function Bookings() {
         <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>{message.text}</div>
       )}
 
-      {calStatus.configured && (
-        <div className="card" style={{ marginBottom: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-            <div>
-              <strong>Google Calendar</strong>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                {calStatus.linked
-                  ? 'Connected. Session invites show up on your calendar.'
-                  : 'Connect to get Google Meet invites on your calendar automatically.'}
-              </div>
-            </div>
-            {calStatus.linked ? (
-              <button className="btn btn-secondary btn-sm" onClick={unlinkCalendar}>Disconnect</button>
-            ) : (
-              <button className="btn btn-primary btn-sm" onClick={linkCalendar}>Connect Google Calendar</button>
-            )}
-          </div>
-        </div>
-      )}
+      <GoogleCalendarCard />
 
       <div className="card">
         {bookings.length === 0 ? (

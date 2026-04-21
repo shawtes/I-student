@@ -4,6 +4,7 @@ import Availability from './Availability';
 import Requests from './Requests';
 import Profile from './Profile';
 import Earnings from './Earnings';
+import GoogleCalendarCard from '../GoogleCalendarCard';
 
 function TutorDashboard() {
   const { user, logout } = useAuth();
@@ -74,6 +75,7 @@ function TutorHome() {
         <h1>Tutor Dashboard</h1>
         <p>Manage your sessions, hours, and profile</p>
       </div>
+      <GoogleCalendarCard />
       <div className="grid grid-3">
         {cards.map(c => (
           <Link key={c.title} to={c.link} style={{ textDecoration: 'none', color: 'inherit' }}>

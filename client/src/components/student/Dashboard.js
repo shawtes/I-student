@@ -18,6 +18,7 @@ import MyClasses from './MyClasses';
 import Billing from './Billing';
 import LiveTranscribe from './LiveTranscribe';
 import UpgradePrompt from '../UpgradePrompt';
+import GoogleCalendarCard from '../GoogleCalendarCard';
 
 function Dashboard() {
   const { user, logout } = useAuth();
@@ -213,6 +214,7 @@ function DashboardHome() {
         <h1>Welcome back</h1>
         <p>Jump into your study tools</p>
       </div>
+      <GoogleCalendarCard />
       <div className="grid grid-3">
         {features.map(f => (
           <Link key={f.title} to={f.link} style={{ textDecoration: 'none', color: 'inherit' }}>
